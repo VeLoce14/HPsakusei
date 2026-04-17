@@ -1,8 +1,17 @@
 import { TOPPINGS } from '@/data/toppings'
 
+export type MockSite = {
+  id: string
+  name: string
+  subdomain: string
+  templateName: string
+  isPublished: boolean
+  enabledToppings: string[]
+}
+
 export const mockUsedSubdomains = ['green-salon', 'seed-cafe', 'warm-school']
 
-export const mockSites = [
+export const mockSites: MockSite[] = [
   {
     id: 'site-001',
     name: 'はじめてサロン',
@@ -20,5 +29,9 @@ export const mockSites = [
     enabledToppings: ['seo']
   }
 ]
+
+export function getMockSiteById(siteId: string) {
+  return mockSites.find((site) => site.id === siteId)
+}
 
 export const mockEnabledToppingIds = TOPPINGS.slice(0, 3).map((item) => item.id)

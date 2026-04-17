@@ -1,35 +1,24 @@
+import Link from 'next/link'
 import { AppShell } from '@/components/app-shell'
-import { TOPPINGS } from '@/data/toppings'
-import { calculateMonthlyTotal, formatYen } from '@/lib/pricing'
-import { mockEnabledToppingIds } from '@/lib/mock'
+import { mockSites } from '@/lib/mock'
 
-export default function ToppingsPage() {
-  const price = calculateMonthlyTotal(mockEnabledToppingIds)
-
+export default function ToppingsSiteSelectPage() {
   return (
-    <AppShell title="トッピング管理">
-      <div className="card p-4">
-        <p className="text-sm text-subtext">月額合計（リアルタイム表示モック）</p>
-        <p className="mt-1 text-3xl font-bold text-main">{formatYen(price.total)} / 月</p>
-        <p className="mt-1 text-sm text-subtext">ベース {formatYen(price.base)} + トッピング {formatYen(price.toppings)}</p>
-      </div>
+    <AppShell title="トッピング管理（HPごと）">
+      <p className="text-subtext">トッピングはHP単位で設定します。編集したいHPを選択してください。</p>
 
       <div className="mt-5 grid gap-3">
-        {TOPPINGS.map((item) => (
-          <article key={item.id} className="card p-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+        {mockSites.map((site) => (
+          <article key={site.id} className="card p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="font-semibold">{item.name}</h2>
-                <p className="mt-1 text-sm text-subtext">{item.description}</p>
-                {item.note ? <p className="mt-1 text-xs text-subtext">※{item.note}</p> : null}
+                <h2 className="font-semibold">{site.name}</h2>
+                <p className="text-sm text-subtext">{site.subdomain}.example.com</p>
+                <p className="text-xs text-subtext">選択中トッピング: {site.enabledToppings.length}件</p>
               </div>
-              <div className="text-right">
-                <p className="font-bold text-main">{formatYen(item.price)} / 月</p>
-                <label className="mt-2 inline-flex items-center gap-2 text-sm">
-                  <input type="checkbox" defaultChecked={mockEnabledToppingIds.includes(item.id)} />
-                  ON / OFF
-                </label>
-              </div>
+              <Link href={`/toppings/${site.id}`} className="rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white">
+                このHPのトッピングを管理
+              </Link>
             </div>
           </article>
         ))}

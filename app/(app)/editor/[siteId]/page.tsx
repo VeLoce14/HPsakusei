@@ -1,9 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { useDebouncedEffect } from '@/lib/debounce'
 import { contrastRatio } from '@/lib/color'
+import { getMockSiteById } from '@/lib/mock'
 
 type Section = {
   id: string
@@ -23,6 +26,10 @@ const initialSections: Section[] = [
 ]
 
 export default function EditorPage() {
+  const params = useParams<{ siteId: string }>()
+  const siteId = params.siteId
+  const site = getMockSiteById(siteId)
+
   const [heroTitle, setHeroTitle] = useState('地域に愛される、やさしいサロン')
   const [cta, setCta] = useState('無料カウンセリングはこちら')
   const [status, setStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved')
@@ -36,10 +43,10 @@ export default function EditorPage() {
       fetch('/api/autosave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ heroTitle, cta, sections })
+        body: JSON.stringify({ siteId, heroTitle, cta, sections })
       }).finally(() => setStatus('saved'))
     }
-  }, [heroTitle, cta, sections, status], 900)
+  }, [siteId, heroTitle, cta, sections, status], 900)
 
   const ratio = useMemo(() => contrastRatio(bgColor, buttonColor), [bgColor, buttonColor])
   const lowContrast = ratio < 3
@@ -61,7 +68,14 @@ export default function EditorPage() {
 
   return (
     <AppShell title="HPエディタ（MVPモック）">
-      <p className="mb-3 text-sm text-subtext">スマホ編集は可能ですが、詳細な調整はPC利用を推奨します。</p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm text-subtext">編集対象HP: <span className="font-semibold text-text">{site?.name ?? siteId}</span></p>
+          <p className="text-xs text-subtext">スマホ編集は可能ですが、詳細な調整はPC利用を推奨します。</p>
+        </div>
+        <Link href={`/toppings/${siteId}`} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">このHPのトッピング設定</Link>
+      </div>
+
       <p className="badge">保存状態: {status === 'saved' ? '保存済み' : status === 'saving' ? '保存中...' : '未保存'}</p>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
