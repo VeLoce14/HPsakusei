@@ -1,0 +1,8 @@
+<svg width="800" height="480" viewBox="0 0 800 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="480" fill="#EAF4EE"/>
+  <rect x="40" y="40" width="720" height="70" rx="8" fill="#2D6A4F"/>
+  <rect x="40" y="140" width="460" height="250" rx="8" fill="#FFFFFF"/>
+  <rect x="520" y="140" width="240" height="120" rx="8" fill="#F7F8F5"/>
+  <rect x="520" y="280" width="240" height="110" rx="8" fill="#FFFFFF"/>
+  <text x="60" y="84" fill="#FFFFFF" font-size="26" font-family="sans-serif">Template Preview</text>
+</svg>
