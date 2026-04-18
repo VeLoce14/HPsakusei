@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { TEMPLATE_PRESETS } from '@/data/template-presets'
 import { useSites } from '@/lib/site-store'
+import { cloneSections, createDefaultContent } from '@/lib/site-defaults'
 
 export default function TemplatesPage() {
   const router = useRouter()
@@ -41,7 +42,9 @@ export default function TemplatesPage() {
       templateName: preset.name,
       heroTitle: preset.sampleHeroTitle,
       heroBody: preset.sampleHeroBody,
-      ctaText: preset.ctaText
+      ctaText: preset.ctaText,
+      content: createDefaultContent(preset.id),
+      sections: cloneSections()
     })
 
     setMessage(`「${selectedSite.name}」に ${preset.name} を適用しました。`)

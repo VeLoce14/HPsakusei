@@ -1,5 +1,6 @@
 import { TOPPINGS } from '@/data/toppings'
 import { getTemplatePresetById } from '@/data/template-presets'
+import { cloneSections, createDefaultContent, type SiteContent, type SiteSection } from '@/lib/site-defaults'
 
 export type MockSite = {
   id: string
@@ -12,6 +13,8 @@ export type MockSite = {
   heroTitle: string
   heroBody: string
   ctaText: string
+  content: SiteContent
+  sections: SiteSection[]
 }
 
 const storyPreset = getTemplatePresetById('story')
@@ -30,7 +33,9 @@ export const mockSites: MockSite[] = [
     enabledToppings: ['contact-form', 'sns', 'google-map'],
     heroTitle: storyPreset.sampleHeroTitle,
     heroBody: storyPreset.sampleHeroBody,
-    ctaText: storyPreset.ctaText
+    ctaText: storyPreset.ctaText,
+    content: createDefaultContent(storyPreset.id),
+    sections: cloneSections()
   },
   {
     id: 'site-002',
@@ -42,7 +47,9 @@ export const mockSites: MockSite[] = [
     enabledToppings: ['seo'],
     heroTitle: trustPreset.sampleHeroTitle,
     heroBody: trustPreset.sampleHeroBody,
-    ctaText: trustPreset.ctaText
+    ctaText: trustPreset.ctaText,
+    content: createDefaultContent(trustPreset.id),
+    sections: cloneSections()
   }
 ]
 
