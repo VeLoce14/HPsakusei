@@ -89,7 +89,8 @@ export default function PublicSitePage() {
         customerName: name,
         customerEmail: email,
         customerMessage: message,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        status: 'new'
       })
 
       setSubmitStatus('done')

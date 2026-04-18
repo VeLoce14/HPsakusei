@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 const links = [
   { href: '/dashboard', label: 'ダッシュボード' },
+  { href: '/inbox', label: '問い合わせ管理' },
   { href: '/templates', label: 'テンプレート' },
   { href: '/toppings', label: 'トッピング' },
   { href: '/publish', label: '公開設定' },
