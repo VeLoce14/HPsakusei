@@ -52,7 +52,7 @@ export default function TemplatesPage() {
   }
 
   return (
-    <AppShell title="テンプレート選択（3骨格 1st版）">
+    <AppShell title="テンプレート選択（実戦デザイン版）">
       <section className="card p-4">
         <h2 className="font-heading text-lg font-bold">適用先HPを選択</h2>
         <label className="mt-3 block text-sm">
@@ -72,29 +72,40 @@ export default function TemplatesPage() {
         {message ? <p className="mt-2 text-sm text-subtext">{message}</p> : null}
       </section>
 
-      <p className="mt-4 text-sm text-subtext">量産感を避けるため、まずは「3つの高品質骨格」を用意し、配色・写真・文言で展開する方針にしています。</p>
+      <p className="mt-4 text-sm text-subtext">参考サイトのような「余白・タイポ・導線」を再現しやすいように、3つの骨格テンプレートを強化しました。画像は権利上、必ず自社素材またはライセンス確認済み素材を使用してください。</p>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {TEMPLATE_PRESETS.map((template) => (
-          <article key={template.id} className="card overflow-hidden">
-            <div className="h-36 bg-accent p-4">
-              <p className="badge">{template.tagline}</p>
-              <h3 className="mt-3 font-heading text-lg font-bold text-main">{template.name}</h3>
-              <p className="mt-2 text-sm text-subtext">{template.description}</p>
-            </div>
-            <div className="p-4">
-              <p className="text-sm text-subtext">見出し例</p>
-              <p className="mt-1 text-base font-semibold">{template.sampleHeroTitle}</p>
-              <button
-                type="button"
-                onClick={() => applyTemplate(template.id)}
-                className="mt-3 w-full rounded-lg bg-main px-3 py-2 text-sm font-semibold text-white"
-              >
-                このテンプレートを適用
-              </button>
-            </div>
-          </article>
-        ))}
+        {TEMPLATE_PRESETS.map((template) => {
+          const isMenu = template.id === 'menu'
+          const isTrust = template.id === 'trust'
+          const topBg = isMenu
+            ? 'from-orange-100 via-amber-50 to-rose-100'
+            : isTrust
+              ? 'from-slate-100 via-blue-50 to-white'
+              : 'from-emerald-100 via-white to-teal-100'
+
+          return (
+            <article key={template.id} className="card overflow-hidden border border-main/20 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className={`h-40 bg-gradient-to-br ${topBg} p-4`}>
+                <p className="badge">{template.tagline}</p>
+                <h3 className="mt-3 font-heading text-xl font-bold text-main">{template.name}</h3>
+                <p className="mt-2 text-sm text-subtext">{template.description}</p>
+              </div>
+              <div className="p-4">
+                <p className="text-xs tracking-wide text-subtext">メインコピー例</p>
+                <p className="mt-1 whitespace-pre-line text-base font-semibold">{template.sampleHeroTitle}</p>
+                <p className="mt-2 text-sm text-subtext">CTA: {template.ctaText}</p>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate(template.id)}
+                  className="mt-4 w-full rounded-xl bg-main px-3 py-2.5 text-sm font-semibold text-white"
+                >
+                  このテンプレートを適用
+                </button>
+              </div>
+            </article>
+          )
+        })}
       </div>
     </AppShell>
   )

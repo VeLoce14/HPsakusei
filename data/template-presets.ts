@@ -11,30 +11,30 @@ export type TemplatePreset = {
 export const TEMPLATE_PRESETS: TemplatePreset[] = [
   {
     id: 'story',
-    name: 'Story（想い訴求）',
-    tagline: 'サロン・コーチ向けの温かい導線',
-    description: 'ファーストビュー→想い→お客様の声の順で信頼を積み上げる骨格。',
-    sampleHeroTitle: 'あなたの毎日に、やさしい変化を。',
-    sampleHeroBody: 'はじめての方にも安心いただける丁寧なヒアリングで、最適なプランをご提案します。',
-    ctaText: '無料相談を予約する'
+    name: 'Elegant Story（上質サロン）',
+    tagline: '余白・静けさ・信頼をつくるサロン導線',
+    description: '世界観→こだわり→お客様の声→予約へ、の順で迷わせずに自然に行動へ導きます。',
+    sampleHeroTitle: '感動は、細部に宿る。',
+    sampleHeroBody: 'まつ毛・眉・肌の印象設計を、丁寧なカウンセリングと確かな技術で。毎日が少し好きになる体験を届けます。',
+    ctaText: 'ご予約・ご相談はこちら'
   },
   {
     id: 'menu',
-    name: 'Menu（商品訴求）',
-    tagline: '飲食・施術メニューを見せる構成',
-    description: 'おすすめメニューを先に見せ、価格と特徴で比較しやすくする骨格。',
-    sampleHeroTitle: '今日の気分で選べる、こだわりメニュー。',
-    sampleHeroBody: '定番から季節限定まで、あなたにぴったりの一品をわかりやすく紹介します。',
-    ctaText: 'メニューを見る'
+    name: 'Craft Menu（商品魅力訴求）',
+    tagline: '商品写真とメニューを主役にする構成',
+    description: '看板メニュー→価格→こだわり→来店案内までを一枚で伝える、店舗向けの実用導線です。',
+    sampleHeroTitle: '毎日食べたい、手しごとのおいしさ。',
+    sampleHeroBody: '素材の香りと焼きたての食感にこだわった、定番と季節限定のラインナップをお届けします。',
+    ctaText: '本日のメニューを見る'
   },
   {
     id: 'trust',
-    name: 'Trust（信頼訴求）',
-    tagline: 'スクール・士業系の堅実構成',
-    description: '実績・強み・FAQを中心に、不安を先回りして解消する骨格。',
-    sampleHeroTitle: '結果につながる、伴走型サポート。',
-    sampleHeroBody: '一人ひとりの課題に合わせ、無理のないステップで成果までサポートします。',
-    ctaText: 'まずは資料を受け取る'
+    name: 'Professional Trust（専門性訴求）',
+    tagline: '実績と説明力で不安を解消する導線',
+    description: '強み・実績・よくある質問を先回りで提示し、初回相談の心理ハードルを下げる設計です。',
+    sampleHeroTitle: 'あなたの課題に、根拠ある提案を。',
+    sampleHeroBody: '状況を正しく整理し、優先順位を明確化。無理のない計画で、成果まで伴走します。',
+    ctaText: '初回相談を申し込む'
   }
 ]
 

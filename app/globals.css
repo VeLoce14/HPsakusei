@@ -8,8 +8,8 @@
   --color-text: #1a1a1a;
   --color-subtext: #6b6b6b;
   --color-accent: #eaf4ee;
-  --font-body: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', sans-serif;
-  --font-heading: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', sans-serif;
+  --font-body: 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', sans-serif;
+  --font-heading: 'Hiragino Mincho ProN', 'Yu Mincho', 'Hiragino Sans', serif;
 }
 
 * {
@@ -20,6 +20,9 @@ body {
   margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.65;
+  letter-spacing: 0.01em;
 }
 
 a {
@@ -35,9 +38,10 @@ button {
 }
 
 .card {
-  border: 1px solid rgba(45, 106, 79, 0.18);
+  border: 1px solid rgba(45, 106, 79, 0.16);
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px -26px rgba(20, 20, 20, 0.35);
 }
 
 .badge {
