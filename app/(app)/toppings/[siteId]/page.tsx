@@ -1,20 +1,26 @@
+'use client'
+
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { useMemo } from 'react'
+import { useParams } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { TOPPINGS } from '@/data/toppings'
-import { getMockSiteById } from '@/lib/mock'
+import { useSites } from '@/lib/site-store'
 import { calculateMonthlyTotal, formatYen } from '@/lib/pricing'
 
-type Props = {
-  params: Promise<{ siteId: string }>
-}
+export default function SiteToppingsPage() {
+  const { siteId } = useParams<{ siteId: string }>()
+  const { sites, toggleTopping } = useSites()
 
-export default async function SiteToppingsPage({ params }: Props) {
-  const { siteId } = await params
-  const site = getMockSiteById(siteId)
+  const site = useMemo(() => sites.find((item) => item.id === siteId), [sites, siteId])
 
   if (!site) {
-    notFound()
+    return (
+      <AppShell title="トッピング管理">
+        <p className="text-subtext">対象HPが見つかりませんでした。</p>
+        <Link href="/toppings" className="mt-4 inline-block rounded-lg border border-main/40 px-4 py-2 text-sm font-semibold text-main">HP選択に戻る</Link>
+      </AppShell>
+    )
   }
 
   const price = calculateMonthlyTotal(site.enabledToppings)
@@ -41,7 +47,11 @@ export default async function SiteToppingsPage({ params }: Props) {
               <div className="text-right">
                 <p className="font-bold text-main">{formatYen(item.price)} / 月</p>
                 <label className="mt-2 inline-flex items-center gap-2 text-sm">
-                  <input type="checkbox" defaultChecked={site.enabledToppings.includes(item.id)} />
+                  <input
+                    type="checkbox"
+                    checked={site.enabledToppings.includes(item.id)}
+                    onChange={() => toggleTopping(site.id, item.id)}
+                  />
                   ON / OFF
                 </label>
               </div>
@@ -52,7 +62,7 @@ export default async function SiteToppingsPage({ params }: Props) {
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href={`/editor/${site.id}`} className="rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white">このHPを編集</Link>
-        <Link href="/toppings" className="rounded-lg border border-main/40 px-4 py-2 text-sm font-semibold text-main">HP選択に戻る</Link>
+        <Link href="/toppings" className="rounded-lg border border-main/40 px-4 py-2 text-sm font-semibold text-main">HP一覧に戻る</Link>
       </div>
     </AppShell>
   )

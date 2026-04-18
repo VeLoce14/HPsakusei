@@ -3,8 +3,7 @@ import Link from 'next/link'
 const links = [
   { href: '/dashboard', label: 'ダッシュボード' },
   { href: '/templates', label: 'テンプレート' },
-  { href: '/editor/site-001', label: 'エディタ' },
-  { href: '/toppings', label: 'トッピング管理' },
+  { href: '/toppings', label: 'トッピング' },
   { href: '/publish', label: '公開設定' },
   { href: '/billing', label: '料金・支払い' },
   { href: '/account', label: 'アカウント' }

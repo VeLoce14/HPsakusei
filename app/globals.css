@@ -8,8 +8,8 @@
   --color-text: #1a1a1a;
   --color-subtext: #6b6b6b;
   --color-accent: #eaf4ee;
-  --font-body: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
-  --font-heading: 'Yu Mincho', 'Hiragino Mincho ProN', 'MS PMincho', serif;
+  --font-body: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', sans-serif;
+  --font-heading: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', sans-serif;
 }
 
 * {

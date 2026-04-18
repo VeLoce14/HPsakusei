@@ -1,12 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { useDebouncedEffect } from '@/lib/debounce'
 import { contrastRatio } from '@/lib/color'
-import { getMockSiteById } from '@/lib/mock'
+import { useSites } from '@/lib/site-store'
 
 type Section = {
   id: string
@@ -25,28 +25,91 @@ const initialSections: Section[] = [
   { id: 'footer', name: 'フッター', enabled: true }
 ]
 
+function TemplatePreview({ templateId, heroTitle, heroBody, ctaText, buttonColor }: { templateId: string; heroTitle: string; heroBody: string; ctaText: string; buttonColor: string }) {
+  if (templateId === 'menu') {
+    return (
+      <article className="mt-4 rounded-lg bg-white p-4">
+        <h3 className="text-2xl font-bold">{heroTitle}</h3>
+        <p className="mt-2 text-subtext">{heroBody}</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {['おすすめA', '定番B', '季節限定C'].map((menu) => (
+            <div key={menu} className="rounded-lg border border-main/20 p-3">
+              <p className="text-sm text-subtext">{menu}</p>
+              <p className="mt-1 font-semibold">¥1,200〜</p>
+            </div>
+          ))}
+        </div>
+        <button style={{ backgroundColor: buttonColor }} className="mt-4 rounded-lg px-4 py-2 font-semibold text-white">{ctaText}</button>
+      </article>
+    )
+  }
+
+  if (templateId === 'trust') {
+    return (
+      <article className="mt-4 rounded-lg bg-white p-4">
+        <h3 className="text-2xl font-bold">{heroTitle}</h3>
+        <p className="mt-2 text-subtext">{heroBody}</p>
+        <div className="mt-4 rounded-lg bg-accent p-3">
+          <p className="text-sm font-semibold">実績・強み</p>
+          <ul className="mt-1 list-disc pl-5 text-sm text-subtext">
+            <li>継続率 92%</li>
+            <li>個別カスタム対応</li>
+            <li>初回無料相談あり</li>
+          </ul>
+        </div>
+        <button style={{ backgroundColor: buttonColor }} className="mt-4 rounded-lg px-4 py-2 font-semibold text-white">{ctaText}</button>
+      </article>
+    )
+  }
+
+  return (
+    <article className="mt-4 rounded-lg bg-white p-4">
+      <h3 className="text-2xl font-bold">{heroTitle}</h3>
+      <p className="mt-2 text-subtext">{heroBody}</p>
+      <div className="mt-4 rounded-lg border border-main/20 p-3">
+        <p className="text-sm text-subtext">オーナーからのメッセージ</p>
+        <p className="mt-1">はじめての方でも安心してご利用いただけるよう、丁寧にサポートします。</p>
+      </div>
+      <button style={{ backgroundColor: buttonColor }} className="mt-4 rounded-lg px-4 py-2 font-semibold text-white">{ctaText}</button>
+    </article>
+  )
+}
+
 export default function EditorPage() {
   const params = useParams<{ siteId: string }>()
   const siteId = params.siteId
-  const site = getMockSiteById(siteId)
 
-  const [heroTitle, setHeroTitle] = useState('地域に愛される、やさしいサロン')
-  const [cta, setCta] = useState('無料カウンセリングはこちら')
+  const { sites, updateSite } = useSites()
+  const site = useMemo(() => sites.find((item) => item.id === siteId), [sites, siteId])
+
+  const [heroTitle, setHeroTitle] = useState('')
+  const [heroBody, setHeroBody] = useState('')
+  const [ctaText, setCtaText] = useState('')
   const [status, setStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved')
   const [sections, setSections] = useState(initialSections)
   const [bgColor, setBgColor] = useState('#f7f8f5')
   const [buttonColor, setButtonColor] = useState('#2d6a4f')
 
+  useEffect(() => {
+    if (!site) return
+    setHeroTitle(site.heroTitle)
+    setHeroBody(site.heroBody)
+    setCtaText(site.ctaText)
+    setStatus('saved')
+  }, [site])
+
   useDebouncedEffect(() => {
-    if (status === 'unsaved') {
-      setStatus('saving')
-      fetch('/api/autosave', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, heroTitle, cta, sections })
-      }).finally(() => setStatus('saved'))
-    }
-  }, [siteId, heroTitle, cta, sections, status], 900)
+    if (!site || status !== 'unsaved') return
+
+    setStatus('saving')
+    updateSite(siteId, { heroTitle, heroBody, ctaText })
+
+    fetch('/api/autosave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteId, heroTitle, heroBody, ctaText, sections })
+    }).finally(() => setStatus('saved'))
+  }, [siteId, site, heroTitle, heroBody, ctaText, sections, status], 900)
 
   const ratio = useMemo(() => contrastRatio(bgColor, buttonColor), [bgColor, buttonColor])
   const lowContrast = ratio < 3
@@ -71,9 +134,12 @@ export default function EditorPage() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm text-subtext">編集対象HP: <span className="font-semibold text-text">{site?.name ?? siteId}</span></p>
-          <p className="text-xs text-subtext">スマホ編集は可能ですが、詳細な調整はPC利用を推奨します。</p>
+          <p className="text-xs text-subtext">現在テンプレート: {site?.templateName ?? '未設定'} / スマホ編集は可能ですがPC推奨です。</p>
         </div>
-        <Link href={`/toppings/${siteId}`} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">このHPのトッピング設定</Link>
+        <div className="flex gap-2">
+          <Link href={`/templates?siteId=${siteId}`} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">テンプレート変更</Link>
+          <Link href={`/toppings/${siteId}`} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">このHPのトッピング</Link>
+        </div>
       </div>
 
       <p className="badge">保存状態: {status === 'saved' ? '保存済み' : status === 'saving' ? '保存中...' : '未保存'}</p>
@@ -81,26 +147,31 @@ export default function EditorPage() {
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <section className="card p-4" aria-label="編集パネル">
           <h2 className="font-heading text-lg font-bold">編集パネル</h2>
+
           <label className="mt-3 block text-sm">
             見出しテキスト
             <input
               value={heroTitle}
-              onChange={(e) => {
-                setHeroTitle(e.target.value)
-                setStatus('unsaved')
-              }}
+              onChange={(e) => { setHeroTitle(e.target.value); setStatus('unsaved') }}
               className="mt-1 w-full rounded-lg border border-main/30 px-3 py-2"
             />
           </label>
 
           <label className="mt-3 block text-sm">
-            ボタンテキスト
+            サブテキスト
+            <textarea
+              value={heroBody}
+              onChange={(e) => { setHeroBody(e.target.value); setStatus('unsaved') }}
+              className="mt-1 w-full rounded-lg border border-main/30 px-3 py-2"
+              rows={3}
+            />
+          </label>
+
+          <label className="mt-3 block text-sm">
+            CTAボタンテキスト
             <input
-              value={cta}
-              onChange={(e) => {
-                setCta(e.target.value)
-                setStatus('unsaved')
-              }}
+              value={ctaText}
+              onChange={(e) => { setCtaText(e.target.value); setStatus('unsaved') }}
               className="mt-1 w-full rounded-lg border border-main/30 px-3 py-2"
             />
           </label>
@@ -115,14 +186,13 @@ export default function EditorPage() {
               <input type="color" value={buttonColor} onChange={(e) => { setButtonColor(e.target.value); setStatus('unsaved') }} className="mt-1 h-10 w-full" />
             </label>
           </div>
-          {lowContrast ? (
-            <p className="mt-2 text-sm text-red-700">背景色とボタン色のコントラスト比が低い可能性があります（{ratio.toFixed(2)}:1）</p>
-          ) : null}
+
+          {lowContrast ? <p className="mt-2 text-sm text-red-700">背景色とボタン色のコントラスト比が低い可能性があります（{ratio.toFixed(2)}:1）</p> : null}
 
           <div className="mt-4 card p-3 text-sm">
             <p className="font-medium">画像差し替え</p>
-            <p className="mt-1 text-subtext">1枚5MB以内。アップロードまたはUnsplash素材選択（API連携は次ステップ）。</p>
-            <button className="mt-2 rounded-lg border border-main/40 px-3 py-1.5">画像をアップロード</button>
+            <p className="mt-1 text-subtext">1枚5MB以内。アップロードまたはライセンス確認済み素材のみ利用してください。</p>
+            <button className="mt-2 rounded-lg border border-main/40 px-3 py-1.5" type="button">画像をアップロード</button>
           </div>
 
           <div className="mt-4">
@@ -149,11 +219,13 @@ export default function EditorPage() {
 
         <section className="card p-4" aria-label="リアルタイムプレビュー" style={{ backgroundColor: bgColor }}>
           <h2 className="font-heading text-lg font-bold">リアルタイムプレビュー</h2>
-          <article className="mt-4 rounded-lg bg-white p-4">
-            <h3 className="text-2xl font-bold">{heroTitle}</h3>
-            <p className="mt-2 text-subtext">テンプレート枠内の指定エリアのみ編集可能です。</p>
-            <button style={{ backgroundColor: buttonColor }} className="mt-4 rounded-lg px-4 py-2 font-semibold text-white">{cta}</button>
-          </article>
+          <TemplatePreview
+            templateId={site?.templateId ?? 'story'}
+            heroTitle={heroTitle}
+            heroBody={heroBody}
+            ctaText={ctaText}
+            buttonColor={buttonColor}
+          />
         </section>
       </div>
     </AppShell>

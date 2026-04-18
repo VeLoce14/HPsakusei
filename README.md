@@ -5,11 +5,11 @@
 - **Goal**: 個人事業主・スモールビジネス向けノーコードHP作成サービスのMVPを、Next.js構成で先行モック実装
 - **Main Features (Phase1 Mock)**:
   - サービスLP
-  - 新規登録 / ログイン（メール + Google導線）
-  - ダッシュボード（3主要導線）
-  - テンプレート選択（5業種 × 3雰囲気 = 15）
+  - 新規登録 / ログイン（Supabase Auth接続済み：メール + Google）
+  - ダッシュボード（HP選択起点UI + 新規HP作成）
+  - テンプレート選択（3骨格テンプレートをHPへ即時適用）
   - HPエディタ（自動保存デバウンス、保存状態表示、セクションON/OFF・並び替え、コントラスト警告）
-  - トッピング管理
+  - トッピング管理（HPごと）
   - 公開設定（サブドメイン重複チェックAPIモック）
   - 料金・支払い管理（Stripe Portal導線プレースホルダー）
   - アカウント設定（退会警告あり）
@@ -63,7 +63,6 @@
 - エディタの主要要件（自動保存デバウンス、公開ボタン分離、保存ステータス）
 
 ### Not Yet Implemented
-- Supabase Auth実接続（Email/Google）
 - Prisma migration & Supabase PostgreSQL接続
 - Craft.js本格エディタ実装
 - Tiptap投稿管理UI
@@ -76,10 +75,11 @@
 ## User Guide (Mock)
 1. `/signup` で登録導線を確認
 2. `/dashboard` から各機能へ移動
-3. `/templates` でテンプレート選択UI確認
-4. `/editor/site-001` で編集→自動保存ステータス確認
-5. `/publish` でサブドメイン重複チェックを試す
-6. `/billing` で料金表示と休眠プラン導線を確認
+3. `/dashboard` のHP選択起点から、編集 or トッピングへ移動
+4. `/templates?siteId=site-001` でテンプレート適用し、`/editor/site-001` へ遷移確認
+5. `/toppings/site-001` でHP単位トッピングON/OFF確認
+6. `/publish` でサブドメイン重複チェックを試す
+7. `/billing` で料金表示と休眠プラン導線を確認
 
 ## Development
 ```bash
@@ -102,4 +102,4 @@ npm run dev
 ## Deployment Status
 - **Platform**: Vercel（予定）
 - **Status**: ⚠️ ローカルモック実装完了（本番未デプロイ）
-- **Last Updated**: 2026-04-17
+- **Last Updated**: 2026-04-18

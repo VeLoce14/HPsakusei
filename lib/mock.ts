@@ -1,13 +1,21 @@
 import { TOPPINGS } from '@/data/toppings'
+import { getTemplatePresetById } from '@/data/template-presets'
 
 export type MockSite = {
   id: string
   name: string
   subdomain: string
+  templateId: string
   templateName: string
   isPublished: boolean
   enabledToppings: string[]
+  heroTitle: string
+  heroBody: string
+  ctaText: string
 }
+
+const storyPreset = getTemplatePresetById('story')
+const trustPreset = getTemplatePresetById('trust')
 
 export const mockUsedSubdomains = ['green-salon', 'seed-cafe', 'warm-school']
 
@@ -16,17 +24,25 @@ export const mockSites: MockSite[] = [
     id: 'site-001',
     name: 'はじめてサロン',
     subdomain: 'green-salon',
-    templateName: '美容室・サロン系 / 温かみ・ナチュラル',
+    templateId: storyPreset.id,
+    templateName: storyPreset.name,
     isPublished: true,
-    enabledToppings: ['contact-form', 'sns', 'google-map']
+    enabledToppings: ['contact-form', 'sns', 'google-map'],
+    heroTitle: storyPreset.sampleHeroTitle,
+    heroBody: storyPreset.sampleHeroBody,
+    ctaText: storyPreset.ctaText
   },
   {
     id: 'site-002',
     name: 'まちの整体室',
     subdomain: 'body-care',
-    templateName: '整体院・マッサージ / シンプル・クリーン',
+    templateId: trustPreset.id,
+    templateName: trustPreset.name,
     isPublished: false,
-    enabledToppings: ['seo']
+    enabledToppings: ['seo'],
+    heroTitle: trustPreset.sampleHeroTitle,
+    heroBody: trustPreset.sampleHeroBody,
+    ctaText: trustPreset.ctaText
   }
 ]
 
