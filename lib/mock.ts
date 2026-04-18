@@ -35,7 +35,7 @@ export const mockSites: MockSite[] = [
     heroBody: storyPreset.sampleHeroBody,
     ctaText: storyPreset.ctaText,
     content: createDefaultContent(storyPreset.id),
-    sections: cloneSections()
+    sections: cloneSections(undefined, storyPreset.id)
   },
   {
     id: 'site-002',
@@ -49,7 +49,7 @@ export const mockSites: MockSite[] = [
     heroBody: trustPreset.sampleHeroBody,
     ctaText: trustPreset.ctaText,
     content: createDefaultContent(trustPreset.id),
-    sections: cloneSections()
+    sections: cloneSections(undefined, trustPreset.id)
   }
 ]
 

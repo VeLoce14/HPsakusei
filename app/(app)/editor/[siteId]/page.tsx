@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { TOPPINGS } from '@/data/toppings'
@@ -47,6 +47,31 @@ function extractFirstUrl(text: string) {
   return found?.[0] ?? ''
 }
 
+function hasInvalidBookingProtocol(text: string) {
+  return /:\/\//.test(text) && !/https?:\/\//.test(text)
+}
+
+type EditorSnapshot = {
+  heroTitle: string
+  heroBody: string
+  ctaText: string
+  heroImageUrl: string
+  introTitle: string
+  introBody: string
+  serviceItems: ServiceItem[]
+  reviewText: string
+  faqQuestion: string
+  faqAnswer: string
+  accessInfo: string
+  contactInfo: string
+  bookingInfo: string
+  extraPages: ExtraPage[]
+  footerText: string
+  sections: SiteSection[]
+  bgColor: string
+  buttonColor: string
+}
+
 export default function EditorPage() {
   const params = useParams<{ siteId: string }>()
   const siteId = params.siteId
@@ -77,11 +102,91 @@ export default function EditorPage() {
   const [uploadMessage, setUploadMessage] = useState('')
   const [imageMeta, setImageMeta] = useState<ImageMeta | null>(null)
   const [sectionNotice, setSectionNotice] = useState('')
+  const [lastSavedAt, setLastSavedAt] = useState('')
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
+  const [draggingPageId, setDraggingPageId] = useState<string | null>(null)
+  const [history, setHistory] = useState<EditorSnapshot[]>([])
+  const [historyIndex, setHistoryIndex] = useState(0)
+
+  const historyRef = useRef<EditorSnapshot[]>([])
+  const historyIndexRef = useRef(0)
+  const applyingSnapshotRef = useRef(false)
+
+  const createSnapshot = (): EditorSnapshot => ({
+    heroTitle,
+    heroBody,
+    ctaText,
+    heroImageUrl,
+    introTitle,
+    introBody,
+    serviceItems,
+    reviewText,
+    faqQuestion,
+    faqAnswer,
+    accessInfo,
+    contactInfo,
+    bookingInfo,
+    extraPages,
+    footerText,
+    sections,
+    bgColor,
+    buttonColor
+  })
+
+  const applySnapshot = (snapshot: EditorSnapshot) => {
+    applyingSnapshotRef.current = true
+
+    setHeroTitle(snapshot.heroTitle)
+    setHeroBody(snapshot.heroBody)
+    setCtaText(snapshot.ctaText)
+    setHeroImageUrl(snapshot.heroImageUrl)
+    setIntroTitle(snapshot.introTitle)
+    setIntroBody(snapshot.introBody)
+    setServiceItems(snapshot.serviceItems)
+    setReviewText(snapshot.reviewText)
+    setFaqQuestion(snapshot.faqQuestion)
+    setFaqAnswer(snapshot.faqAnswer)
+    setAccessInfo(snapshot.accessInfo)
+    setContactInfo(snapshot.contactInfo)
+    setBookingInfo(snapshot.bookingInfo)
+    setExtraPages(snapshot.extraPages)
+    setFooterText(snapshot.footerText)
+    setSections(snapshot.sections)
+    setBgColor(snapshot.bgColor)
+    setButtonColor(snapshot.buttonColor)
+
+    setStatus('unsaved')
+
+    setTimeout(() => {
+      applyingSnapshotRef.current = false
+    }, 0)
+  }
+
+  const pushHistory = (snapshot: EditorSnapshot) => {
+    const current = historyRef.current
+    const currentIndex = historyIndexRef.current
+    const compareTarget = current[currentIndex]
+
+    if (compareTarget && JSON.stringify(compareTarget) === JSON.stringify(snapshot)) return
+
+    const trimmed = current.slice(0, currentIndex + 1)
+    const next = [...trimmed, snapshot]
+    const capped = next.length > 20 ? next.slice(next.length - 20) : next
+    const nextIndex = capped.length - 1
+
+    historyRef.current = capped
+    historyIndexRef.current = nextIndex
+    setHistory(capped)
+    setHistoryIndex(nextIndex)
+  }
 
   useEffect(() => {
     if (!site) return
 
     const content = site.content ?? createDefaultContent(site.templateId)
+    const initialSections = cloneSections(site.sections, site.templateId)
+
+    applyingSnapshotRef.current = true
 
     setHeroTitle(site.heroTitle)
     setHeroBody(site.heroBody)
@@ -98,8 +203,39 @@ export default function EditorPage() {
     setBookingInfo(content.bookingInfo)
     setExtraPages(content.extraPages)
     setFooterText(content.footerText)
-    setSections(cloneSections(site.sections))
+    setSections(initialSections)
     setStatus('saved')
+    setLastSavedAt(new Date().toLocaleString('ja-JP'))
+
+    const initialSnapshot: EditorSnapshot = {
+      heroTitle: site.heroTitle,
+      heroBody: site.heroBody,
+      ctaText: site.ctaText,
+      heroImageUrl: content.heroImageUrl,
+      introTitle: content.introTitle,
+      introBody: content.introBody,
+      serviceItems: content.serviceItems,
+      reviewText: content.reviewText,
+      faqQuestion: content.faqQuestion,
+      faqAnswer: content.faqAnswer,
+      accessInfo: content.accessInfo,
+      contactInfo: content.contactInfo,
+      bookingInfo: content.bookingInfo,
+      extraPages: content.extraPages,
+      footerText: content.footerText,
+      sections: initialSections,
+      bgColor: '#f7f8f5',
+      buttonColor: '#2d6a4f'
+    }
+
+    historyRef.current = [initialSnapshot]
+    historyIndexRef.current = 0
+    setHistory([initialSnapshot])
+    setHistoryIndex(0)
+
+    setTimeout(() => {
+      applyingSnapshotRef.current = false
+    }, 0)
   }, [site])
 
   useEffect(() => {
@@ -126,8 +262,40 @@ export default function EditorPage() {
     img.src = heroImageUrl
   }, [heroImageUrl])
 
+  const slugErrors = useMemo(() => {
+    const errors: Record<string, string> = {}
+    const slugMap = new Map<string, number>()
+
+    extraPages.forEach((page) => {
+      const slug = page.slug.trim()
+      if (!slug) {
+        errors[page.id] = 'スラッグは必須です。'
+        return
+      }
+      if (!/^[a-z0-9-]+$/.test(slug)) {
+        errors[page.id] = '半角英数字とハイフンのみ使用できます。'
+        return
+      }
+      slugMap.set(slug, (slugMap.get(slug) ?? 0) + 1)
+    })
+
+    extraPages.forEach((page) => {
+      const slug = page.slug.trim()
+      if (slug && (slugMap.get(slug) ?? 0) > 1) {
+        errors[page.id] = 'スラッグが重複しています。'
+      }
+    })
+
+    return errors
+  }, [extraPages])
+  const hasSlugErrors = Object.keys(slugErrors).length > 0
+
   useDebouncedEffect(() => {
     if (!site || status !== 'unsaved') return
+    if (hasSlugErrors) {
+      setSectionNotice('追加ページのURLスラッグにエラーがあるため保存できません。')
+      return
+    }
 
     setStatus('saving')
 
@@ -176,8 +344,11 @@ export default function EditorPage() {
           footerText
         }
       })
-    }).finally(() => setStatus('saved'))
-  }, [site, status, siteId, heroTitle, heroBody, ctaText, heroImageUrl, introTitle, introBody, serviceItems, reviewText, faqQuestion, faqAnswer, accessInfo, contactInfo, bookingInfo, extraPages, footerText, sections], 900)
+    }).finally(() => {
+      setStatus('saved')
+      setLastSavedAt(new Date().toLocaleString('ja-JP'))
+    })
+  }, [site, status, siteId, heroTitle, heroBody, ctaText, heroImageUrl, introTitle, introBody, serviceItems, reviewText, faqQuestion, faqAnswer, accessInfo, contactInfo, bookingInfo, extraPages, footerText, sections, hasSlugErrors], 900)
 
   const ratio = useMemo(() => contrastRatio(bgColor, buttonColor), [bgColor, buttonColor])
   const lowContrast = ratio < 3
@@ -191,6 +362,8 @@ export default function EditorPage() {
   const enabledSectionIds = useMemo(() => sections.filter((section) => section.enabled).map((section) => section.id), [sections])
   const recommendedRatio = useMemo(() => getRecommendedRatio(site?.templateId ?? 'story'), [site?.templateId])
   const bookingUrl = useMemo(() => extractFirstUrl(bookingInfo), [bookingInfo])
+  const bookingUrlInvalid = useMemo(() => hasInvalidBookingProtocol(bookingInfo), [bookingInfo])
+
   const ratioWarning = useMemo(() => {
     if (!imageMeta) return null
     const recommendedValue = recommendedRatio.width / recommendedRatio.height
@@ -222,6 +395,44 @@ export default function EditorPage() {
     if (toppingId === 'sns') return 'プレビューにSNSリンク表示が追加されます。'
     if (toppingId === 'blog') return 'プレビューにブログ機能ラベルが追加されます。'
     return 'このトッピングの設定を反映しました。'
+  }
+
+  const prePublishChecks = useMemo(() => {
+    const issues: string[] = []
+
+    if (!heroTitle.trim()) issues.push('メインビジュアル見出しが未入力です。')
+    if (enabledSectionIds.includes('intro') && !introTitle.trim()) issues.push('自己紹介・お店紹介のタイトルが未入力です。')
+    if (enabledSectionIds.includes('services') && serviceItems.length === 0) issues.push('サービス・料金に1件以上の項目が必要です。')
+    if (lowContrast) issues.push(`背景色とボタン色のコントラスト比が低いです（${ratio.toFixed(2)}:1）。`)
+    if (ratioWarning) issues.push('メイン画像の比率が推奨値と大きく異なります。')
+    if (site?.enabledToppings.includes('booking') && bookingUrlInvalid) issues.push('予約フォームURLは http / https 形式のみ対応です。')
+    if (hasSlugErrors) issues.push('追加ページのURLスラッグに重複または未入力があります。')
+    if (site?.enabledToppings.includes('extra-pages') && extraPages.length > 0 && !extraPages.some((page) => page.isPublished)) {
+      issues.push('追加ページがすべて非公開です。少なくとも1ページを公開にしてください。')
+    }
+
+    return issues
+  }, [heroTitle, introTitle, serviceItems.length, lowContrast, ratio, ratioWarning, bookingUrlInvalid, hasSlugErrors, enabledSectionIds, site?.enabledToppings, extraPages])
+
+  useEffect(() => {
+    if (!site || applyingSnapshotRef.current) return
+    pushHistory(createSnapshot())
+  }, [site, heroTitle, heroBody, ctaText, heroImageUrl, introTitle, introBody, serviceItems, reviewText, faqQuestion, faqAnswer, accessInfo, contactInfo, bookingInfo, extraPages, footerText, sections, bgColor, buttonColor])
+
+  const undo = () => {
+    if (historyIndexRef.current <= 0) return
+    const nextIndex = historyIndexRef.current - 1
+    historyIndexRef.current = nextIndex
+    setHistoryIndex(nextIndex)
+    applySnapshot(historyRef.current[nextIndex])
+  }
+
+  const redo = () => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return
+    const nextIndex = historyIndexRef.current + 1
+    historyIndexRef.current = nextIndex
+    setHistoryIndex(nextIndex)
+    applySnapshot(historyRef.current[nextIndex])
   }
 
   const moveSection = (index: number, direction: -1 | 1) => {
@@ -275,7 +486,8 @@ export default function EditorPage() {
           id: `page-${Date.now()}-${serial}`,
           title: `追加ページ ${serial}`,
           slug: `page-${serial}`,
-          body: 'このページの内容を入力してください。'
+          body: 'このページの内容を入力してください。',
+          isPublished: true
         }
       ]
     })
@@ -287,8 +499,29 @@ export default function EditorPage() {
     setStatus('unsaved')
   }
 
+  const toggleExtraPagePublish = (pageId: string) => {
+    setExtraPages((prev) => prev.map((page) => (page.id === pageId ? { ...page, isPublished: !page.isPublished } : page)))
+    setStatus('unsaved')
+  }
+
   const removeExtraPage = (pageId: string) => {
     setExtraPages((prev) => prev.filter((page) => page.id !== pageId))
+    setStatus('unsaved')
+  }
+
+  const moveExtraPage = (fromId: string, toId: string) => {
+    if (fromId === toId) return
+
+    setExtraPages((prev) => {
+      const fromIndex = prev.findIndex((page) => page.id === fromId)
+      const toIndex = prev.findIndex((page) => page.id === toId)
+      if (fromIndex < 0 || toIndex < 0) return prev
+
+      const copied = [...prev]
+      const [moved] = copied.splice(fromIndex, 1)
+      copied.splice(toIndex, 0, moved)
+      return copied
+    })
     setStatus('unsaved')
   }
 
@@ -350,8 +583,14 @@ export default function EditorPage() {
         <div>
           <p className="text-sm text-subtext">編集対象HP: <span className="font-semibold text-text">{site.name}</span></p>
           <p className="text-xs text-subtext">現在テンプレート: {site.templateName} / OFFにしたセクションの編集項目は自動で隠れます。</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            <span className="badge">{site.isPublished ? '公開中' : '非公開'}</span>
+            {lastSavedAt ? <span className="badge">最終保存: {lastSavedAt}</span> : null}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={undo} disabled={historyIndex <= 0} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main disabled:opacity-50">Undo</button>
+          <button type="button" onClick={redo} disabled={historyIndex >= history.length - 1} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main disabled:opacity-50">Redo</button>
           <Link href={`/sites/${site.subdomain}`} target="_blank" className="rounded-lg bg-main px-3 py-1.5 text-sm font-semibold text-white">公開ページを開く</Link>
 
           {hasTopping('extra-pages') && extraPages.length > 0 ? (
@@ -360,14 +599,16 @@ export default function EditorPage() {
               <div className="absolute right-0 z-10 mt-1 min-w-56 rounded-lg border border-main/20 bg-white p-2 shadow-lg">
                 <Link href={`/sites/${site.subdomain}`} target="_blank" className="block rounded px-2 py-1 text-sm hover:bg-accent">/（トップ）</Link>
                 {extraPages.map((page) => (
-                  <Link
-                    key={page.id}
-                    href={`/sites/${site.subdomain}/${page.slug}`}
-                    target="_blank"
-                    className="mt-1 block rounded px-2 py-1 text-sm hover:bg-accent"
-                  >
-                    /{page.slug || 'page'}
-                  </Link>
+                  <div key={page.id} className="mt-1 flex items-center justify-between gap-2 rounded px-2 py-1 text-sm hover:bg-accent">
+                    {page.isPublished ? (
+                      <Link href={`/sites/${site.subdomain}/${page.slug}`} target="_blank" className="truncate text-main">
+                        /{page.slug || 'page'}
+                      </Link>
+                    ) : (
+                      <span className="truncate text-subtext">/{page.slug || 'page'}</span>
+                    )}
+                    <span className="badge">{page.isPublished ? '公開' : '非公開'}</span>
+                  </div>
                 ))}
               </div>
             </details>
@@ -379,6 +620,22 @@ export default function EditorPage() {
       </div>
 
       <p className="badge">保存状態: {status === 'saved' ? '保存済み' : status === 'saving' ? '保存中...' : '未保存'}</p>
+
+      <section className="mt-3 rounded-lg border border-main/20 bg-white p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-medium">公開前チェック</p>
+          <span className="badge">{prePublishChecks.length === 0 ? '問題なし' : `${prePublishChecks.length}件の確認事項`}</span>
+        </div>
+        {prePublishChecks.length === 0 ? (
+          <p className="mt-2 text-sm text-subtext">このまま公開しても大きな問題はありません。</p>
+        ) : (
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-700">
+            {prePublishChecks.map((issue, index) => (
+              <li key={`${issue}-${index}`}>{issue}</li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <section className="card p-4" aria-label="編集パネル">
@@ -532,6 +789,7 @@ export default function EditorPage() {
                   rows={3}
                   placeholder="例）予約URL: https://example-booking.com\n来店前にご希望メニューをご記入ください。"
                 />
+                {bookingUrlInvalid ? <p className="mt-2 text-xs text-red-700">予約URLは http / https 形式のみ対応です。例: https://example.com</p> : null}
                 {bookingUrl ? (
                   <div className="mt-3 rounded-lg border border-main/20 bg-accent/40 p-2">
                     <p className="text-xs text-subtext">埋め込みプレビュー（編集画面）</p>
@@ -567,8 +825,22 @@ export default function EditorPage() {
 
                 <div className="mt-2 space-y-3">
                   {extraPages.map((page, index) => (
-                    <div key={page.id} className="rounded-lg border border-main/15 p-2">
-                      <p className="text-xs text-subtext">ページ {index + 1}</p>
+                    <div
+                      key={page.id}
+                      className="rounded-lg border border-main/15 p-2"
+                      draggable
+                      onDragStart={() => setDraggingPageId(page.id)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        if (!draggingPageId) return
+                        moveExtraPage(draggingPageId, page.id)
+                        setDraggingPageId(null)
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs text-subtext">ページ {index + 1}（ドラッグで並び替え可）</p>
+                        <span className="badge">{page.isPublished ? '公開中' : '非公開'}</span>
+                      </div>
                       <label className="mt-1 block text-xs">
                         タイトル
                         <input
@@ -576,6 +848,10 @@ export default function EditorPage() {
                           onChange={(e) => updateExtraPage(page.id, 'title', e.target.value)}
                           className="mt-1 w-full rounded border border-main/30 px-2 py-1"
                         />
+                      </label>
+                      <label className="mt-1 inline-flex items-center gap-2 text-xs">
+                        <input type="checkbox" checked={page.isPublished} onChange={() => toggleExtraPagePublish(page.id)} />
+                        このページを公開する
                       </label>
                       <label className="mt-1 block text-xs">
                         URLスラッグ（例: menu）
@@ -585,6 +861,7 @@ export default function EditorPage() {
                           className="mt-1 w-full rounded border border-main/30 px-2 py-1"
                         />
                       </label>
+                      {slugErrors[page.id] ? <p className="mt-1 text-xs text-red-700">{slugErrors[page.id]}</p> : null}
                       <label className="mt-1 block text-xs">
                         本文（改行可）
                         <textarea
@@ -645,8 +922,15 @@ export default function EditorPage() {
         </section>
 
         <section className="card p-4" aria-label="リアルタイムプレビュー" style={{ backgroundColor: bgColor }}>
-          <h2 className="font-heading text-lg font-bold">リアルタイムプレビュー</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-heading text-lg font-bold">リアルタイムプレビュー</h2>
+            <div className="flex gap-2 text-xs">
+              <button type="button" onClick={() => setPreviewMode('desktop')} className={`rounded border px-2 py-1 ${previewMode === 'desktop' ? 'bg-main text-white' : 'bg-white'}`}>PC幅</button>
+              <button type="button" onClick={() => setPreviewMode('mobile')} className={`rounded border px-2 py-1 ${previewMode === 'mobile' ? 'bg-main text-white' : 'bg-white'}`}>スマホ幅</button>
+            </div>
+          </div>
 
+          <div className={previewMode === 'mobile' ? 'mx-auto mt-3 max-w-[390px]' : 'mt-3'}>
           <PreviewSection section={visibleSectionMap.hero}>
             <h3 className="text-2xl font-bold whitespace-pre-line">{heroTitle}</h3>
             <p className="mt-2 text-subtext whitespace-pre-line">{heroBody}</p>
@@ -696,7 +980,9 @@ export default function EditorPage() {
             <section className="mt-4 rounded-lg border border-main/25 bg-white p-4">
               <h4 className="text-xl font-bold">予約フォーム</h4>
               <p className="mt-2 text-subtext whitespace-pre-line">{bookingInfo}</p>
-              {bookingUrl ? (
+              {bookingUrlInvalid ? (
+                <p className="mt-2 text-sm text-red-700">URL形式が不正です。http / https で始まるURLを設定してください。</p>
+              ) : bookingUrl ? (
                 <>
                   <a
                     href={bookingUrl}
@@ -736,7 +1022,7 @@ export default function EditorPage() {
               <h4 className="text-lg font-bold">追加ページ導線</h4>
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 {extraPages.map((page) => (
-                  <span key={page.id} className="badge">/{page.slug || 'page'}</span>
+                  <span key={page.id} className="badge">/{page.slug || 'page'}（{page.isPublished ? '公開' : '非公開'}）</span>
                 ))}
               </div>
             </section>
@@ -745,6 +1031,7 @@ export default function EditorPage() {
           <PreviewSection section={visibleSectionMap.footer}>
             <p className="text-sm text-subtext whitespace-pre-line">{footerText}</p>
           </PreviewSection>
+          </div>
         </section>
       </div>
     </AppShell>

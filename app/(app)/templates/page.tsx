@@ -44,7 +44,7 @@ export default function TemplatesPage() {
       heroBody: preset.sampleHeroBody,
       ctaText: preset.ctaText,
       content: createDefaultContent(preset.id),
-      sections: cloneSections()
+      sections: cloneSections(undefined, preset.id)
     })
 
     setMessage(`「${selectedSite.name}」に ${preset.name} を適用しました。`)

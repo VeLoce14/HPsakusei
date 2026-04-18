@@ -41,6 +41,10 @@ function extractFirstUrl(text: string) {
   return found?.[0] ?? ''
 }
 
+function hasInvalidBookingProtocol(text: string) {
+  return /:\/\//.test(text) && !/https?:\/\//.test(text)
+}
+
 export default function PublicSitePage() {
   const params = useParams<{ subdomain: string; slug?: string[] }>()
   const subdomain = params.subdomain
@@ -74,8 +78,11 @@ export default function PublicSitePage() {
   const hasMap = site.enabledToppings.includes('google-map')
 
   const extraPages = hasExtraPages ? site.content.extraPages : []
-  const currentExtraPage = slug ? extraPages.find((page) => page.slug === slug) : null
+  const publishedExtraPages = extraPages.filter((page) => page.isPublished)
+  const requestedPage = slug ? extraPages.find((page) => page.slug === slug) : null
+  const currentExtraPage = requestedPage?.isPublished ? requestedPage : null
   const bookingUrl = extractFirstUrl(site.content.bookingInfo)
+  const invalidBookingUrl = hasInvalidBookingProtocol(site.content.bookingInfo)
 
   const sectionEnabled = (id: 'hero' | 'intro' | 'services' | 'reviews' | 'faq' | 'access' | 'contact' | 'footer') => {
     return site.sections.find((section) => section.id === id)?.enabled ?? true
@@ -86,8 +93,30 @@ export default function PublicSitePage() {
       <main className="min-h-screen bg-bg px-4 py-12">
         <section className="mx-auto max-w-4xl card p-6">
           <h1 className="font-heading text-2xl font-bold text-main">ページが見つかりません</h1>
-          <p className="mt-2 text-subtext">指定されたURLのページは存在しないか、追加ページトッピングがOFFです。</p>
-          <Link href={`/sites/${subdomain}`} className="mt-4 inline-block rounded-lg border border-main/40 px-4 py-2 text-sm font-semibold text-main">トップページへ戻る</Link>
+          <p className="mt-2 text-subtext">
+            {requestedPage && !requestedPage.isPublished
+              ? 'この追加ページは現在「非公開」です。管理画面で公開設定をONにしてください。'
+              : '指定されたURLのページは存在しないか、追加ページトッピングがOFFです。'}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href={`/sites/${subdomain}`} className="inline-block rounded-lg border border-main/40 px-4 py-2 text-sm font-semibold text-main">トップページへ戻る</Link>
+            <Link href={`/editor/${site.id}`} className="inline-block rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white">編集画面を開く</Link>
+          </div>
+
+          {publishedExtraPages.length > 0 ? (
+            <div className="mt-4 rounded-lg border border-main/20 bg-white p-3">
+              <p className="text-xs font-semibold text-text">公開中の追加ページ</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {publishedExtraPages.map((page) => (
+                  <Link key={page.id} href={`/sites/${subdomain}/${page.slug}`} className="badge">
+                    /{page.slug}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-xs text-subtext">現在公開中の追加ページはありません。トップページをご確認ください。</p>
+          )}
         </section>
       </main>
     )
@@ -134,7 +163,8 @@ export default function PublicSitePage() {
         customerEmail: email,
         customerMessage: message,
         createdAt: new Date().toISOString(),
-        status: 'new'
+        status: 'new',
+        notes: []
       })
 
       setSubmitStatus('done')
@@ -154,22 +184,31 @@ export default function PublicSitePage() {
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-500 md:text-sm">
             <p>{site.name}</p>
-            <p>{subdomain}.example.com</p>
+            <div className="flex items-center gap-2">
+              <span className="badge">{site.isPublished ? '公開中' : '非公開（プレビュー）'}</span>
+              <p>{subdomain}.example.com</p>
+            </div>
           </div>
 
-          {hasExtraPages && extraPages.length > 0 ? (
-            <nav className="mt-4 flex flex-wrap gap-2 text-xs md:text-sm">
-              <Link href={`/sites/${subdomain}`} className={`rounded-full px-3 py-1.5 ${!slug ? 'bg-zinc-900 text-white' : 'bg-white/80 text-zinc-700'}`}>トップ</Link>
-              {extraPages.map((page) => (
-                <Link
-                  key={page.id}
-                  href={`/sites/${subdomain}/${page.slug}`}
-                  className={`rounded-full px-3 py-1.5 ${slug === page.slug ? 'bg-zinc-900 text-white' : 'bg-white/80 text-zinc-700'}`}
-                >
-                  {page.title}
-                </Link>
-              ))}
-            </nav>
+          {hasExtraPages ? (
+            publishedExtraPages.length > 0 ? (
+              <nav className="mt-4 flex flex-wrap gap-2 text-xs md:text-sm">
+                <Link href={`/sites/${subdomain}`} className={`rounded-full px-3 py-1.5 ${!slug ? 'bg-zinc-900 text-white' : 'bg-white/80 text-zinc-700'}`}>トップ</Link>
+                {publishedExtraPages.map((page) => (
+                  <Link
+                    key={page.id}
+                    href={`/sites/${subdomain}/${page.slug}`}
+                    className={`rounded-full px-3 py-1.5 ${slug === page.slug ? 'bg-zinc-900 text-white' : 'bg-white/80 text-zinc-700'}`}
+                  >
+                    {page.title}
+                  </Link>
+                ))}
+              </nav>
+            ) : (
+              <div className="mt-4 rounded-xl border border-zinc-200 bg-white/80 p-3 text-xs text-zinc-600 md:text-sm">
+                追加ページはまだ公開されていません。必要な情報はこのトップページからご確認ください。
+              </div>
+            )
           ) : null}
 
           <section className={`mt-6 rounded-2xl border p-6 shadow-sm md:p-10 ${theme.heroCard}`}>
@@ -182,14 +221,20 @@ export default function PublicSitePage() {
                 {site.ctaText}
               </button>
               {hasBooking ? (
-                <a
-                  href={bookingUrl || '#'}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800"
-                >
-                  予約フォームへ
-                </a>
+                invalidBookingUrl ? (
+                  <span className="rounded-full border border-red-300 bg-red-50 px-6 py-3 text-sm font-semibold text-red-700">
+                    予約URL形式を修正してください
+                  </span>
+                ) : (
+                  <a
+                    href={bookingUrl || '#'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800"
+                  >
+                    予約フォームへ
+                  </a>
+                )
               ) : null}
             </div>
 
@@ -259,7 +304,9 @@ export default function PublicSitePage() {
               <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm md:p-10">
                 <h2 className={`text-2xl font-bold md:text-3xl ${theme.sectionTitle}`}>予約フォーム</h2>
                 <p className="mt-4 text-sm leading-relaxed text-zinc-700 whitespace-pre-line md:text-base">{site.content.bookingInfo}</p>
-                {bookingUrl ? (
+                {invalidBookingUrl ? (
+                  <p className="mt-5 text-sm text-red-700">予約URLは http / https 形式のみ対応です。管理画面でURLを修正してください。</p>
+                ) : bookingUrl ? (
                   <>
                     <div className="mt-5">
                       <a

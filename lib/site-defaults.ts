@@ -16,6 +16,7 @@ export type ExtraPage = {
   title: string
   slug: string
   body: string
+  isPublished: boolean
 }
 
 export type SiteContent = {
@@ -44,6 +45,27 @@ export const defaultSections: SiteSection[] = [
   { id: 'footer', name: 'フッター', enabled: true }
 ]
 
+export function createSectionPreset(templateId: string): SiteSection[] {
+  const base = defaultSections.map((section) => ({ ...section }))
+
+  if (templateId === 'trust') {
+    return base.map((section) => {
+      if (section.id === 'faq') return { ...section, enabled: true }
+      return section
+    })
+  }
+
+  if (templateId === 'menu') {
+    return base.map((section) => {
+      if (section.id === 'reviews') return { ...section, enabled: false }
+      if (section.id === 'faq') return { ...section, enabled: false }
+      return section
+    })
+  }
+
+  return base
+}
+
 export function createDefaultContent(templateId: string): SiteContent {
   const preset = getTemplatePresetById(templateId)
 
@@ -68,7 +90,8 @@ export function createDefaultContent(templateId: string): SiteContent {
           id: 'page-1',
           title: '今週の限定メニュー',
           slug: 'seasonal-menu',
-          body: '季節限定商品の一覧を掲載します。\n原材料やアレルギー情報も記載しておくと安心です。'
+          body: '季節限定商品の一覧を掲載します。\n原材料やアレルギー情報も記載しておくと安心です。',
+          isPublished: true
         }
       ],
       footerText: `© ${new Date().getFullYear()} ${preset.name}`
@@ -96,7 +119,8 @@ export function createDefaultContent(templateId: string): SiteContent {
           id: 'page-1',
           title: '支援実績',
           slug: 'results',
-          body: '導入事例や成果データを掲載します。\n業種ごとの実績を載せると信頼感が高まります。'
+          body: '導入事例や成果データを掲載します。\n業種ごとの実績を載せると信頼感が高まります。',
+          isPublished: true
         }
       ],
       footerText: `© ${new Date().getFullYear()} ${preset.name}`
@@ -123,17 +147,20 @@ export function createDefaultContent(templateId: string): SiteContent {
         id: 'page-1',
         title: '料金について',
         slug: 'pricing',
-        body: '料金やプラン内容をこちらに記載します。\n初めての方にもわかりやすい説明を心がけましょう。'
+        body: '料金やプラン内容をこちらに記載します。\n初めての方にもわかりやすい説明を心がけましょう。',
+        isPublished: true
       }
     ],
     footerText: `© ${new Date().getFullYear()} ${preset.name}`
   }
 }
 
-export function normalizeSections(sections?: SiteSection[]) {
-  const source = sections ?? defaultSections
+export function normalizeSections(sections?: SiteSection[], templateId = 'story') {
+  const source = sections ?? createSectionPreset(templateId)
+  const basePreset = createSectionPreset(templateId)
 
-  return defaultSections.map((baseSection) => {
+
+  return basePreset.map((baseSection) => {
     const found = source.find((item) => item.id === baseSection.id)
     if (!found) return { ...baseSection }
     return {
@@ -144,6 +171,6 @@ export function normalizeSections(sections?: SiteSection[]) {
   })
 }
 
-export function cloneSections(sections?: SiteSection[]) {
-  return normalizeSections(sections).map((section) => ({ ...section }))
+export function cloneSections(sections?: SiteSection[], templateId = 'story') {
+  return normalizeSections(sections, templateId).map((section) => ({ ...section }))
 }

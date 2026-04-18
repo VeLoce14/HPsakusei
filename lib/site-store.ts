@@ -25,7 +25,7 @@ function syncToppingSections(enabledToppings: string[], sections: SiteSection[])
 }
 
 function normalizeSite(site: MockSite): MockSite {
-  const normalizedSections = syncToppingSections(site.enabledToppings, cloneSections(site.sections))
+  const normalizedSections = syncToppingSections(site.enabledToppings, cloneSections(site.sections, site.templateId))
   const defaultContent = createDefaultContent(site.templateId)
 
   return {
@@ -34,7 +34,10 @@ function normalizeSite(site: MockSite): MockSite {
       ...defaultContent,
       ...(site.content ?? {}),
       serviceItems: site.content?.serviceItems ?? defaultContent.serviceItems,
-      extraPages: site.content?.extraPages ?? defaultContent.extraPages
+      extraPages: (site.content?.extraPages ?? defaultContent.extraPages).map((page) => ({
+        ...page,
+        isPublished: page.isPublished ?? true
+      }))
     },
     sections: normalizedSections
   }
@@ -96,7 +99,7 @@ export function useSites() {
               heroBody: preset.sampleHeroBody,
               ctaText: preset.ctaText,
               content: createDefaultContent(preset.id),
-              sections: cloneSections()
+              sections: cloneSections(undefined, preset.id)
             },
             ...prev
           ]

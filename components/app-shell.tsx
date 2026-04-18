@@ -1,4 +1,8 @@
+'use client'
+
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { countNewMessagesAllSites } from '@/lib/contact-store'
 
 const links = [
   { href: '/dashboard', label: 'ダッシュボード' },
@@ -11,6 +15,21 @@ const links = [
 ]
 
 export function AppShell({ title, children }: { title: string; children: React.ReactNode }) {
+  const [newMessageCount, setNewMessageCount] = useState(0)
+
+  useEffect(() => {
+    const update = () => setNewMessageCount(countNewMessagesAllSites())
+
+    update()
+    window.addEventListener('storage', update)
+    window.addEventListener('focus', update)
+
+    return () => {
+      window.removeEventListener('storage', update)
+      window.removeEventListener('focus', update)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-main/20 bg-white/80 backdrop-blur">
@@ -19,7 +38,10 @@ export function AppShell({ title, children }: { title: string; children: React.R
           <nav className="hidden gap-3 text-sm md:flex">
             {links.map((link) => (
               <Link key={link.href} href={link.href} className="rounded-full px-3 py-1.5 hover:bg-accent">
-                {link.label}
+                <span className="inline-flex items-center gap-1.5">
+                  {link.label}
+                  {link.href === '/inbox' && newMessageCount > 0 ? <span className="badge">未対応 {newMessageCount}</span> : null}
+                </span>
               </Link>
             ))}
           </nav>
