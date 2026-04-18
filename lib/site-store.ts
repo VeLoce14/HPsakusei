@@ -3,15 +3,34 @@
 import { useEffect, useMemo, useState } from 'react'
 import { mockSites, type MockSite } from '@/lib/mock'
 import { getTemplatePresetById } from '@/data/template-presets'
-import { cloneSections, createDefaultContent } from '@/lib/site-defaults'
+import { cloneSections, createDefaultContent, type SiteSection } from '@/lib/site-defaults'
 
 const STORAGE_KEY = 'webapp_mock_sites_v3'
 
+function syncToppingSections(enabledToppings: string[], sections: SiteSection[]): SiteSection[] {
+  const hasContact = enabledToppings.includes('contact-form')
+  const hasMap = enabledToppings.includes('google-map')
+
+  return sections.map((section) => {
+    if (section.id === 'contact') {
+      return { ...section, enabled: hasContact ? section.enabled : false }
+    }
+
+    if (section.id === 'access') {
+      return { ...section, enabled: hasMap ? section.enabled : false }
+    }
+
+    return section
+  })
+}
+
 function normalizeSite(site: MockSite): MockSite {
+  const normalizedSections = syncToppingSections(site.enabledToppings, cloneSections(site.sections))
+
   return {
     ...site,
     content: site.content ?? createDefaultContent(site.templateId),
-    sections: cloneSections(site.sections)
+    sections: normalizedSections
   }
 }
 
@@ -88,12 +107,14 @@ export function useSites() {
             if (site.id !== siteId) return site
 
             const enabled = site.enabledToppings.includes(toppingId)
-            return {
+            const nextToppings = enabled
+              ? site.enabledToppings.filter((id) => id !== toppingId)
+              : [...site.enabledToppings, toppingId]
+
+            return normalizeSite({
               ...site,
-              enabledToppings: enabled
-                ? site.enabledToppings.filter((id) => id !== toppingId)
-                : [...site.enabledToppings, toppingId]
-            }
+              enabledToppings: nextToppings
+            })
           })
         )
       }

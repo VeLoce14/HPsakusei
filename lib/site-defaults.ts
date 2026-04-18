@@ -25,9 +25,9 @@ export type SiteContent = {
 }
 
 export const defaultSections: SiteSection[] = [
-  { id: 'hero', name: 'ヒーロー', enabled: true },
+  { id: 'hero', name: 'メインビジュアル', enabled: true },
   { id: 'intro', name: '自己紹介・お店紹介', enabled: true },
-  { id: 'services', name: 'サービス・メニュー', enabled: true },
+  { id: 'services', name: 'サービス・料金', enabled: true },
   { id: 'reviews', name: 'お客様の声', enabled: true },
   { id: 'faq', name: 'よくある質問', enabled: false },
   { id: 'access', name: 'アクセス・営業時間', enabled: true },
@@ -63,6 +63,20 @@ export function createDefaultContent(templateId: string): SiteContent {
   }
 }
 
+export function normalizeSections(sections?: SiteSection[]) {
+  const source = sections ?? defaultSections
+
+  return defaultSections.map((baseSection) => {
+    const found = source.find((item) => item.id === baseSection.id)
+    if (!found) return { ...baseSection }
+    return {
+      ...baseSection,
+      name: baseSection.name,
+      enabled: found.enabled
+    }
+  })
+}
+
 export function cloneSections(sections?: SiteSection[]) {
-  return (sections ?? defaultSections).map((section) => ({ ...section }))
+  return normalizeSections(sections).map((section) => ({ ...section }))
 }
