@@ -26,10 +26,15 @@ function syncToppingSections(enabledToppings: string[], sections: SiteSection[])
 
 function normalizeSite(site: MockSite): MockSite {
   const normalizedSections = syncToppingSections(site.enabledToppings, cloneSections(site.sections))
+  const defaultContent = createDefaultContent(site.templateId)
 
   return {
     ...site,
-    content: site.content ?? createDefaultContent(site.templateId),
+    content: {
+      ...defaultContent,
+      ...(site.content ?? {}),
+      serviceItems: site.content?.serviceItems ?? defaultContent.serviceItems
+    },
     sections: normalizedSections
   }
 }

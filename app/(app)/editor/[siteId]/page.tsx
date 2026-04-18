@@ -16,6 +16,32 @@ function PreviewSection({ section, children }: { section: SiteSection; children:
   return <section className="mt-4 rounded-lg bg-white p-4">{children}</section>
 }
 
+type ImageMeta = {
+  fileName: string
+  fileSizeText: string
+  width: number
+  height: number
+  ratioText: string
+  ratioValue: number
+  format: string
+}
+
+function gcd(a: number, b: number): number {
+  if (!b) return a
+  return gcd(b, a % b)
+}
+
+function createRatioText(width: number, height: number) {
+  const divisor = gcd(width, height)
+  return `${Math.round(width / divisor)}:${Math.round(height / divisor)}`
+}
+
+function getRecommendedRatio(templateId: string) {
+  if (templateId === 'menu') return { width: 4, height: 3, label: '4:3' }
+  if (templateId === 'trust') return { width: 1, height: 1, label: '1:1' }
+  return { width: 16, height: 9, label: '16:9' }
+}
+
 export default function EditorPage() {
   const params = useParams<{ siteId: string }>()
   const siteId = params.siteId
@@ -35,6 +61,7 @@ export default function EditorPage() {
   const [faqAnswer, setFaqAnswer] = useState('')
   const [accessInfo, setAccessInfo] = useState('')
   const [contactInfo, setContactInfo] = useState('')
+  const [bookingInfo, setBookingInfo] = useState('')
   const [footerText, setFooterText] = useState('')
 
   const [status, setStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved')
@@ -42,6 +69,7 @@ export default function EditorPage() {
   const [bgColor, setBgColor] = useState('#f7f8f5')
   const [buttonColor, setButtonColor] = useState('#2d6a4f')
   const [uploadMessage, setUploadMessage] = useState('')
+  const [imageMeta, setImageMeta] = useState<ImageMeta | null>(null)
   const [sectionNotice, setSectionNotice] = useState('')
 
   useEffect(() => {
@@ -61,10 +89,35 @@ export default function EditorPage() {
     setFaqAnswer(content.faqAnswer)
     setAccessInfo(content.accessInfo)
     setContactInfo(content.contactInfo)
+    setBookingInfo(content.bookingInfo)
     setFooterText(content.footerText)
     setSections(cloneSections(site.sections))
     setStatus('saved')
   }, [site])
+
+  useEffect(() => {
+    if (!heroImageUrl) {
+      setImageMeta(null)
+      return
+    }
+
+    const img = new Image()
+    img.onload = () => {
+      const width = img.naturalWidth
+      const height = img.naturalHeight
+      const ratioText = createRatioText(width, height)
+      setImageMeta((prev) => ({
+        fileName: prev?.fileName ?? '登録済み画像',
+        fileSizeText: prev?.fileSizeText ?? '不明',
+        width,
+        height,
+        ratioText,
+        ratioValue: width / height,
+        format: prev?.format ?? '不明'
+      }))
+    }
+    img.src = heroImageUrl
+  }, [heroImageUrl])
 
   useDebouncedEffect(() => {
     if (!site || status !== 'unsaved') return
@@ -85,6 +138,7 @@ export default function EditorPage() {
         faqAnswer,
         accessInfo,
         contactInfo,
+        bookingInfo,
         footerText
       },
       sections
@@ -109,11 +163,12 @@ export default function EditorPage() {
           faqAnswer,
           accessInfo,
           contactInfo,
+          bookingInfo,
           footerText
         }
       })
     }).finally(() => setStatus('saved'))
-  }, [site, status, siteId, heroTitle, heroBody, ctaText, heroImageUrl, introTitle, introBody, serviceItems, reviewText, faqQuestion, faqAnswer, accessInfo, contactInfo, footerText, sections], 900)
+  }, [site, status, siteId, heroTitle, heroBody, ctaText, heroImageUrl, introTitle, introBody, serviceItems, reviewText, faqQuestion, faqAnswer, accessInfo, contactInfo, bookingInfo, footerText, sections], 900)
 
   const ratio = useMemo(() => contrastRatio(bgColor, buttonColor), [bgColor, buttonColor])
   const lowContrast = ratio < 3
@@ -125,6 +180,14 @@ export default function EditorPage() {
 
   const sitePrice = calculateMonthlyTotal(site?.enabledToppings ?? [])
   const enabledSectionIds = useMemo(() => sections.filter((section) => section.enabled).map((section) => section.id), [sections])
+  const recommendedRatio = useMemo(() => getRecommendedRatio(site?.templateId ?? 'story'), [site?.templateId])
+  const ratioWarning = useMemo(() => {
+    if (!imageMeta) return null
+    const recommendedValue = recommendedRatio.width / recommendedRatio.height
+    const diff = Math.abs(imageMeta.ratioValue - recommendedValue)
+    if (diff < 0.12) return null
+    return `現在の比率 ${imageMeta.ratioText} は推奨 ${recommendedRatio.label} と差があります。表示時にトリミングされる可能性があります。`
+  }, [imageMeta, recommendedRatio])
 
   const sectionLockReason: Partial<Record<SiteSection['id'], string>> = {
     access: '「Google Map埋め込み」トッピングをONにすると表示できます。',
@@ -139,6 +202,16 @@ export default function EditorPage() {
   }
 
   const isSectionEnabled = (sectionId: SiteSection['id']) => enabledSectionIds.includes(sectionId)
+  const hasTopping = (toppingId: string) => Boolean(site?.enabledToppings.includes(toppingId))
+
+  const getToppingEffectMessage = (toppingId: string) => {
+    if (toppingId === 'booking') return '予約フォーム設定パネルが編集できるようになります。'
+    if (toppingId === 'google-map') return 'アクセス・営業時間セクションを表示できます。'
+    if (toppingId === 'contact-form') return 'お問い合わせセクションを表示できます。'
+    if (toppingId === 'sns') return 'プレビューにSNSリンク表示が追加されます。'
+    if (toppingId === 'blog') return 'プレビューにブログ機能ラベルが追加されます。'
+    return 'このトッピングの設定を反映しました。'
+  }
 
   const moveSection = (index: number, direction: -1 | 1) => {
     const target = index + direction
@@ -192,13 +265,36 @@ export default function EditorPage() {
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result
-      if (typeof result === 'string') {
+      if (typeof result !== 'string') return
+
+      const img = new Image()
+      img.onload = () => {
+        const width = img.naturalWidth
+        const height = img.naturalHeight
+
         setHeroImageUrl(result)
+        setImageMeta({
+          fileName: file.name,
+          fileSizeText: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+          width,
+          height,
+          ratioText: createRatioText(width, height),
+          ratioValue: width / height,
+          format: file.type || 'image/*'
+        })
         setUploadMessage('画像をセットしました。')
         setStatus('unsaved')
       }
+      img.src = result
     }
     reader.readAsDataURL(file)
+  }
+
+  const clearImage = () => {
+    setHeroImageUrl('')
+    setImageMeta(null)
+    setUploadMessage('画像を削除しました。')
+    setStatus('unsaved')
   }
 
   if (!site) {
@@ -275,6 +371,20 @@ export default function EditorPage() {
               <div className="mt-3">
                 <p className="text-sm font-medium">メイン画像（5MB以内）</p>
                 <input type="file" accept="image/*" className="mt-1 block w-full text-sm" onChange={(e) => handleImageUpload(e.target.files?.[0])} />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button type="button" onClick={clearImage} className="rounded border border-main/40 px-2 py-1 text-xs text-main">画像を削除</button>
+                  <p className="text-xs text-subtext">推奨比率: {recommendedRatio.label}</p>
+                </div>
+                {imageMeta ? (
+                  <div className="mt-2 rounded-lg border border-main/15 bg-accent/40 p-2 text-xs text-subtext">
+                    <p>ファイル: {imageMeta.fileName}</p>
+                    <p>形式: {imageMeta.format}</p>
+                    <p>サイズ: {imageMeta.fileSizeText}</p>
+                    <p>解像度: {imageMeta.width} × {imageMeta.height}</p>
+                    <p>比率: {imageMeta.ratioText}</p>
+                  </div>
+                ) : null}
+                {ratioWarning ? <p className="mt-1 text-xs text-red-700">{ratioWarning}</p> : null}
                 {uploadMessage ? <p className="mt-1 text-xs text-subtext">{uploadMessage}</p> : null}
               </div>
             </div>
@@ -349,6 +459,27 @@ export default function EditorPage() {
           ) : null}
 
           <div className="mt-4 rounded-lg border border-main/20 bg-white p-3">
+            <p className="font-medium">予約フォーム設定（トッピング連動）</p>
+            {hasTopping('booking') ? (
+              <>
+                <p className="mt-1 text-xs text-subtext">予約フォームトッピングがONです。ここで予約導線を編集できます。</p>
+                <textarea
+                  value={bookingInfo}
+                  onChange={(e) => {
+                    setBookingInfo(e.target.value)
+                    setStatus('unsaved')
+                  }}
+                  className="mt-2 w-full rounded-lg border border-main/30 px-3 py-2"
+                  rows={3}
+                  placeholder="予約URLや説明文（改行可）"
+                />
+              </>
+            ) : (
+              <p className="mt-1 text-xs text-subtext">「予約フォーム（外部埋め込み）」トッピングをONにすると編集できます。</p>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-lg border border-main/20 bg-white p-3">
             <p className="font-medium">トッピング（このHP）</p>
             <p className="mt-1 text-sm text-subtext">月額合計: {formatYen(sitePrice.total)}（ベース {formatYen(sitePrice.base)} + トッピング {formatYen(sitePrice.toppings)}）</p>
             <div className="mt-2 grid gap-2">
@@ -362,6 +493,7 @@ export default function EditorPage() {
                       checked={site.enabledToppings.includes(item.id)}
                       onChange={() => {
                         toggleTopping(site.id, item.id)
+                        setSectionNotice(getToppingEffectMessage(item.id))
                         setStatus('unsaved')
                       }}
                     />
@@ -434,6 +566,26 @@ export default function EditorPage() {
             <h4 className="text-xl font-bold">お問い合わせ</h4>
             <p className="mt-2 text-subtext whitespace-pre-line">{contactInfo}</p>
           </PreviewSection>
+
+          {hasTopping('booking') ? (
+            <section className="mt-4 rounded-lg border border-main/25 bg-white p-4">
+              <h4 className="text-xl font-bold">予約フォーム</h4>
+              <p className="mt-2 text-subtext whitespace-pre-line">{bookingInfo}</p>
+              <button className="mt-3 rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white" type="button">予約へ進む</button>
+            </section>
+          ) : null}
+
+          {(hasTopping('sns') || hasTopping('blog') || hasTopping('seo') || hasTopping('ga')) ? (
+            <section className="mt-4 rounded-lg border border-main/25 bg-white p-4">
+              <h4 className="text-lg font-bold">有効な追加機能</h4>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {hasTopping('sns') ? <span className="badge">SNSリンク表示</span> : null}
+                {hasTopping('blog') ? <span className="badge">ブログ・お知らせ</span> : null}
+                {hasTopping('seo') ? <span className="badge">SEO設定</span> : null}
+                {hasTopping('ga') ? <span className="badge">アクセス解析</span> : null}
+              </div>
+            </section>
+          ) : null}
 
           <PreviewSection section={visibleSectionMap.footer}>
             <p className="text-sm text-subtext whitespace-pre-line">{footerText}</p>

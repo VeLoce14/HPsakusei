@@ -21,6 +21,7 @@ export type SiteContent = {
   faqAnswer: string
   accessInfo: string
   contactInfo: string
+  bookingInfo: string
   footerText: string
 }
 
@@ -59,6 +60,7 @@ export function createDefaultContent(templateId: string): SiteContent {
     faqAnswer: '基本的に予約優先です。空きがあれば当日対応も可能です。',
     accessInfo: '東京都〇〇区〇〇 1-2-3 / 平日 10:00-19:00',
     contactInfo: 'TEL: 03-0000-0000 / MAIL: info@example.com',
+    bookingInfo: '予約ページURL: https://example-booking.com\n予約受付時間: 10:00〜18:00',
     footerText: `© ${new Date().getFullYear()} ${preset.name}`
   }
 }
