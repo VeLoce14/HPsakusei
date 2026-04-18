@@ -351,7 +351,8 @@ export default function EditorPage() {
           <p className="text-sm text-subtext">編集対象HP: <span className="font-semibold text-text">{site.name}</span></p>
           <p className="text-xs text-subtext">現在テンプレート: {site.templateName} / OFFにしたセクションの編集項目は自動で隠れます。</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/sites/${site.subdomain}`} target="_blank" className="rounded-lg bg-main px-3 py-1.5 text-sm font-semibold text-white">公開ページを開く</Link>
           <Link href={`/templates?siteId=${siteId}`} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">テンプレート変更</Link>
           <Link href="/dashboard" className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">HP選択に戻る</Link>
         </div>
