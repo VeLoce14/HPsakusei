@@ -9,7 +9,7 @@ import { contrastRatio } from '@/lib/color'
 import { useDebouncedEffect } from '@/lib/debounce'
 import { calculateMonthlyTotal, formatYen } from '@/lib/pricing'
 import { useSites } from '@/lib/site-store'
-import { cloneSections, createDefaultContent, type ServiceItem, type SiteSection } from '@/lib/site-defaults'
+import { cloneSections, createDefaultContent, type ExtraPage, type ServiceItem, type SiteSection } from '@/lib/site-defaults'
 
 function PreviewSection({ section, children }: { section: SiteSection; children: React.ReactNode }) {
   if (!section.enabled) return null
@@ -62,6 +62,7 @@ export default function EditorPage() {
   const [accessInfo, setAccessInfo] = useState('')
   const [contactInfo, setContactInfo] = useState('')
   const [bookingInfo, setBookingInfo] = useState('')
+  const [extraPages, setExtraPages] = useState<ExtraPage[]>([])
   const [footerText, setFooterText] = useState('')
 
   const [status, setStatus] = useState<'saved' | 'unsaved' | 'saving'>('saved')
@@ -90,6 +91,7 @@ export default function EditorPage() {
     setAccessInfo(content.accessInfo)
     setContactInfo(content.contactInfo)
     setBookingInfo(content.bookingInfo)
+    setExtraPages(content.extraPages)
     setFooterText(content.footerText)
     setSections(cloneSections(site.sections))
     setStatus('saved')
@@ -139,6 +141,7 @@ export default function EditorPage() {
         accessInfo,
         contactInfo,
         bookingInfo,
+        extraPages,
         footerText
       },
       sections
@@ -164,11 +167,12 @@ export default function EditorPage() {
           accessInfo,
           contactInfo,
           bookingInfo,
+          extraPages,
           footerText
         }
       })
     }).finally(() => setStatus('saved'))
-  }, [site, status, siteId, heroTitle, heroBody, ctaText, heroImageUrl, introTitle, introBody, serviceItems, reviewText, faqQuestion, faqAnswer, accessInfo, contactInfo, bookingInfo, footerText, sections], 900)
+  }, [site, status, siteId, heroTitle, heroBody, ctaText, heroImageUrl, introTitle, introBody, serviceItems, reviewText, faqQuestion, faqAnswer, accessInfo, contactInfo, bookingInfo, extraPages, footerText, sections], 900)
 
   const ratio = useMemo(() => contrastRatio(bgColor, buttonColor), [bgColor, buttonColor])
   const lowContrast = ratio < 3
@@ -206,8 +210,9 @@ export default function EditorPage() {
 
   const getToppingEffectMessage = (toppingId: string) => {
     if (toppingId === 'booking') return '予約フォーム設定パネルが編集できるようになります。'
+    if (toppingId === 'extra-pages') return '追加ページ編集パネルが有効になり、公開ページに反映されます。'
     if (toppingId === 'google-map') return 'アクセス・営業時間セクションを表示できます。'
-    if (toppingId === 'contact-form') return 'お問い合わせセクションを表示できます。'
+    if (toppingId === 'contact-form') return 'お問い合わせフォームを表示できます。'
     if (toppingId === 'sns') return 'プレビューにSNSリンク表示が追加されます。'
     if (toppingId === 'blog') return 'プレビューにブログ機能ラベルが追加されます。'
     return 'このトッピングの設定を反映しました。'
@@ -251,6 +256,33 @@ export default function EditorPage() {
 
   const removeServiceItem = (index: number) => {
     setServiceItems((prev) => prev.filter((_, i) => i !== index))
+    setStatus('unsaved')
+  }
+
+  const addExtraPage = () => {
+    setExtraPages((prev) => {
+      if (prev.length >= 8) return prev
+      const serial = prev.length + 1
+      return [
+        ...prev,
+        {
+          id: `page-${Date.now()}-${serial}`,
+          title: `追加ページ ${serial}`,
+          slug: `page-${serial}`,
+          body: 'このページの内容を入力してください。'
+        }
+      ]
+    })
+    setStatus('unsaved')
+  }
+
+  const updateExtraPage = (pageId: string, key: keyof ExtraPage, value: string) => {
+    setExtraPages((prev) => prev.map((page) => (page.id === pageId ? { ...page, [key]: value } : page)))
+    setStatus('unsaved')
+  }
+
+  const removeExtraPage = (pageId: string) => {
+    setExtraPages((prev) => prev.filter((page) => page.id !== pageId))
     setStatus('unsaved')
   }
 
@@ -480,6 +512,61 @@ export default function EditorPage() {
           </div>
 
           <div className="mt-4 rounded-lg border border-main/20 bg-white p-3">
+            <p className="font-medium">追加ページ設定（トッピング連動）</p>
+            {hasTopping('extra-pages') ? (
+              <>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-subtext">作成済み {extraPages.length} / 8 ページ</p>
+                  <button
+                    type="button"
+                    onClick={addExtraPage}
+                    className="rounded border border-main/40 px-2 py-1 text-xs"
+                    disabled={extraPages.length >= 8}
+                  >
+                    + 追加ページを作成
+                  </button>
+                </div>
+
+                <div className="mt-2 space-y-3">
+                  {extraPages.map((page, index) => (
+                    <div key={page.id} className="rounded-lg border border-main/15 p-2">
+                      <p className="text-xs text-subtext">ページ {index + 1}</p>
+                      <label className="mt-1 block text-xs">
+                        タイトル
+                        <input
+                          value={page.title}
+                          onChange={(e) => updateExtraPage(page.id, 'title', e.target.value)}
+                          className="mt-1 w-full rounded border border-main/30 px-2 py-1"
+                        />
+                      </label>
+                      <label className="mt-1 block text-xs">
+                        URLスラッグ（例: menu）
+                        <input
+                          value={page.slug}
+                          onChange={(e) => updateExtraPage(page.id, 'slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                          className="mt-1 w-full rounded border border-main/30 px-2 py-1"
+                        />
+                      </label>
+                      <label className="mt-1 block text-xs">
+                        本文（改行可）
+                        <textarea
+                          value={page.body}
+                          onChange={(e) => updateExtraPage(page.id, 'body', e.target.value)}
+                          className="mt-1 w-full rounded border border-main/30 px-2 py-1"
+                          rows={3}
+                        />
+                      </label>
+                      <button type="button" onClick={() => removeExtraPage(page.id)} className="mt-2 rounded border px-2 py-1 text-xs">このページを削除</button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-1 text-xs text-subtext">「追加ページ」トッピングをONにすると編集できます。</p>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-lg border border-main/20 bg-white p-3">
             <p className="font-medium">トッピング（このHP）</p>
             <p className="mt-1 text-sm text-subtext">月額合計: {formatYen(sitePrice.total)}（ベース {formatYen(sitePrice.base)} + トッピング {formatYen(sitePrice.toppings)}）</p>
             <div className="mt-2 grid gap-2">
@@ -583,6 +670,17 @@ export default function EditorPage() {
                 {hasTopping('blog') ? <span className="badge">ブログ・お知らせ</span> : null}
                 {hasTopping('seo') ? <span className="badge">SEO設定</span> : null}
                 {hasTopping('ga') ? <span className="badge">アクセス解析</span> : null}
+              </div>
+            </section>
+          ) : null}
+
+          {hasTopping('extra-pages') && extraPages.length > 0 ? (
+            <section className="mt-4 rounded-lg border border-main/25 bg-white p-4">
+              <h4 className="text-lg font-bold">追加ページ導線</h4>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {extraPages.map((page) => (
+                  <span key={page.id} className="badge">/{page.slug || 'page'}</span>
+                ))}
               </div>
             </section>
           ) : null}

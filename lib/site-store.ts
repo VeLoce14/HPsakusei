@@ -5,7 +5,7 @@ import { mockSites, type MockSite } from '@/lib/mock'
 import { getTemplatePresetById } from '@/data/template-presets'
 import { cloneSections, createDefaultContent, type SiteSection } from '@/lib/site-defaults'
 
-const STORAGE_KEY = 'webapp_mock_sites_v3'
+export const STORAGE_KEY = 'webapp_mock_sites_v3'
 
 function syncToppingSections(enabledToppings: string[], sections: SiteSection[]): SiteSection[] {
   const hasContact = enabledToppings.includes('contact-form')
@@ -33,14 +33,15 @@ function normalizeSite(site: MockSite): MockSite {
     content: {
       ...defaultContent,
       ...(site.content ?? {}),
-      serviceItems: site.content?.serviceItems ?? defaultContent.serviceItems
+      serviceItems: site.content?.serviceItems ?? defaultContent.serviceItems,
+      extraPages: site.content?.extraPages ?? defaultContent.extraPages
     },
     sections: normalizedSections
   }
 }
 
-function loadSites(): MockSite[] {
-  if (typeof window === 'undefined') return mockSites
+export function readSitesFromStorage(): MockSite[] {
+  if (typeof window === 'undefined') return mockSites.map(normalizeSite)
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
@@ -64,7 +65,7 @@ export function useSites() {
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    const initial = loadSites()
+    const initial = readSitesFromStorage()
     setSites(initial)
     setHydrated(true)
   }, [])

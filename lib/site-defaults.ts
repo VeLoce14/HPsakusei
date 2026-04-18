@@ -11,6 +11,13 @@ export type ServiceItem = {
   price: string
 }
 
+export type ExtraPage = {
+  id: string
+  title: string
+  slug: string
+  body: string
+}
+
 export type SiteContent = {
   heroImageUrl: string
   introTitle: string
@@ -22,6 +29,7 @@ export type SiteContent = {
   accessInfo: string
   contactInfo: string
   bookingInfo: string
+  extraPages: ExtraPage[]
   footerText: string
 }
 
@@ -61,6 +69,14 @@ export function createDefaultContent(templateId: string): SiteContent {
     accessInfo: '東京都〇〇区〇〇 1-2-3 / 平日 10:00-19:00',
     contactInfo: 'TEL: 03-0000-0000 / MAIL: info@example.com',
     bookingInfo: '予約ページURL: https://example-booking.com\n予約受付時間: 10:00〜18:00',
+    extraPages: [
+      {
+        id: 'page-1',
+        title: '料金について',
+        slug: 'pricing',
+        body: '料金やプラン内容をこちらに記載します。\n初めての方にもわかりやすい説明を心がけましょう。'
+      }
+    ],
     footerText: `© ${new Date().getFullYear()} ${preset.name}`
   }
 }

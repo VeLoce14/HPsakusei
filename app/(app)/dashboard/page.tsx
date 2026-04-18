@@ -1,18 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AppShell } from '@/components/app-shell'
+import { readContactMessagesBySite, type ContactMessage } from '@/lib/contact-store'
 import { useSites } from '@/lib/site-store'
 
 export default function DashboardPage() {
   const { sites, hydrated, addSite } = useSites()
   const [activeSiteId, setActiveSiteId] = useState('')
+  const [siteMessages, setSiteMessages] = useState<ContactMessage[]>([])
 
   const activeSite = useMemo(() => {
     const fallbackId = activeSiteId || sites[0]?.id
     return sites.find((site) => site.id === fallbackId)
   }, [sites, activeSiteId])
+
+  useEffect(() => {
+    if (!activeSite?.id) {
+      setSiteMessages([])
+      return
+    }
+
+    setSiteMessages(readContactMessagesBySite(activeSite.id))
+  }, [activeSite?.id, hydrated])
 
   return (
     <AppShell title="ダッシュボード">
@@ -51,6 +62,24 @@ export default function DashboardPage() {
                 </>
               ) : null}
             </div>
+
+            {activeSite ? (
+              <div className="mt-4 rounded-lg border border-main/20 bg-white p-3">
+                <p className="text-sm font-semibold">最新のお問い合わせ（{activeSite.name}）</p>
+                {siteMessages.length === 0 ? (
+                  <p className="mt-1 text-xs text-subtext">まだお問い合わせはありません。公開ページのフォーム送信でここに届きます。</p>
+                ) : (
+                  <ul className="mt-2 space-y-2">
+                    {siteMessages.slice(0, 3).map((msg) => (
+                      <li key={msg.id} className="rounded border border-main/15 px-2 py-2 text-xs">
+                        <p className="font-semibold">{msg.customerName}（{msg.customerEmail}）</p>
+                        <p className="mt-1 whitespace-pre-line text-subtext">{msg.customerMessage}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
           </>
         )}
       </section>
