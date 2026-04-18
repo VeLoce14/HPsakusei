@@ -353,6 +353,26 @@ export default function EditorPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/sites/${site.subdomain}`} target="_blank" className="rounded-lg bg-main px-3 py-1.5 text-sm font-semibold text-white">公開ページを開く</Link>
+
+          {hasTopping('extra-pages') && extraPages.length > 0 ? (
+            <details className="group relative">
+              <summary className="cursor-pointer list-none rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">追加ページを開く ▾</summary>
+              <div className="absolute right-0 z-10 mt-1 min-w-56 rounded-lg border border-main/20 bg-white p-2 shadow-lg">
+                <Link href={`/sites/${site.subdomain}`} target="_blank" className="block rounded px-2 py-1 text-sm hover:bg-accent">/（トップ）</Link>
+                {extraPages.map((page) => (
+                  <Link
+                    key={page.id}
+                    href={`/sites/${site.subdomain}/${page.slug}`}
+                    target="_blank"
+                    className="mt-1 block rounded px-2 py-1 text-sm hover:bg-accent"
+                  >
+                    /{page.slug || 'page'}
+                  </Link>
+                ))}
+              </div>
+            </details>
+          ) : null}
+
           <Link href={`/templates?siteId=${siteId}`} className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">テンプレート変更</Link>
           <Link href="/dashboard" className="rounded-lg border border-main/40 px-3 py-1.5 text-sm font-semibold text-main">HP選択に戻る</Link>
         </div>
