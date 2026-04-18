@@ -42,6 +42,11 @@ function getRecommendedRatio(templateId: string) {
   return { width: 16, height: 9, label: '16:9' }
 }
 
+function extractFirstUrl(text: string) {
+  const found = text.match(/https?:\/\/[^\s]+/)
+  return found?.[0] ?? ''
+}
+
 export default function EditorPage() {
   const params = useParams<{ siteId: string }>()
   const siteId = params.siteId
@@ -185,6 +190,7 @@ export default function EditorPage() {
   const sitePrice = calculateMonthlyTotal(site?.enabledToppings ?? [])
   const enabledSectionIds = useMemo(() => sections.filter((section) => section.enabled).map((section) => section.id), [sections])
   const recommendedRatio = useMemo(() => getRecommendedRatio(site?.templateId ?? 'story'), [site?.templateId])
+  const bookingUrl = useMemo(() => extractFirstUrl(bookingInfo), [bookingInfo])
   const ratioWarning = useMemo(() => {
     if (!imageMeta) return null
     const recommendedValue = recommendedRatio.width / recommendedRatio.height
@@ -494,7 +500,7 @@ export default function EditorPage() {
             <p className="font-medium">予約フォーム設定（トッピング連動）</p>
             {hasTopping('booking') ? (
               <>
-                <p className="mt-1 text-xs text-subtext">予約フォームトッピングがONです。ここで予約導線を編集できます。</p>
+                <p className="mt-1 text-xs text-subtext">予約フォームトッピングがONです。ここで予約導線を編集できます。URLを含めると公開ページでiframe埋め込み表示されます。</p>
                 <textarea
                   value={bookingInfo}
                   onChange={(e) => {
@@ -503,8 +509,19 @@ export default function EditorPage() {
                   }}
                   className="mt-2 w-full rounded-lg border border-main/30 px-3 py-2"
                   rows={3}
-                  placeholder="予約URLや説明文（改行可）"
+                  placeholder="例）予約URL: https://example-booking.com\n来店前にご希望メニューをご記入ください。"
                 />
+                {bookingUrl ? (
+                  <div className="mt-3 rounded-lg border border-main/20 bg-accent/40 p-2">
+                    <p className="text-xs text-subtext">埋め込みプレビュー（編集画面）</p>
+                    <iframe
+                      src={bookingUrl}
+                      title="予約フォームプレビュー"
+                      className="mt-2 h-56 w-full rounded border border-main/20 bg-white"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
               </>
             ) : (
               <p className="mt-1 text-xs text-subtext">「予約フォーム（外部埋め込み）」トッピングをONにすると編集できます。</p>
@@ -658,7 +675,26 @@ export default function EditorPage() {
             <section className="mt-4 rounded-lg border border-main/25 bg-white p-4">
               <h4 className="text-xl font-bold">予約フォーム</h4>
               <p className="mt-2 text-subtext whitespace-pre-line">{bookingInfo}</p>
-              <button className="mt-3 rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white" type="button">予約へ進む</button>
+              {bookingUrl ? (
+                <>
+                  <a
+                    href={bookingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    予約サイトを開く
+                  </a>
+                  <iframe
+                    src={bookingUrl}
+                    title="予約フォーム埋め込み"
+                    className="mt-3 h-72 w-full rounded-lg border border-main/20"
+                    loading="lazy"
+                  />
+                </>
+              ) : (
+                <button className="mt-3 rounded-lg bg-main px-4 py-2 text-sm font-semibold text-white" type="button">予約へ進む</button>
+              )}
             </section>
           ) : null}
 

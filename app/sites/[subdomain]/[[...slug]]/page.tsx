@@ -259,16 +259,28 @@ export default function PublicSitePage() {
               <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm md:p-10">
                 <h2 className={`text-2xl font-bold md:text-3xl ${theme.sectionTitle}`}>予約フォーム</h2>
                 <p className="mt-4 text-sm leading-relaxed text-zinc-700 whitespace-pre-line md:text-base">{site.content.bookingInfo}</p>
-                <div className="mt-5">
-                  <a
-                    href={bookingUrl || '#'}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white ${theme.button}`}
-                  >
-                    予約サイトを開く
-                  </a>
-                </div>
+                {bookingUrl ? (
+                  <>
+                    <div className="mt-5">
+                      <a
+                        href={bookingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`inline-flex rounded-full px-6 py-3 text-sm font-semibold text-white ${theme.button}`}
+                      >
+                        予約サイトを開く
+                      </a>
+                    </div>
+                    <iframe
+                      src={bookingUrl}
+                      title="予約フォーム埋め込み"
+                      className="mt-5 h-[520px] w-full rounded-xl border border-zinc-200"
+                      loading="lazy"
+                    />
+                  </>
+                ) : (
+                  <p className="mt-5 text-sm text-zinc-500">予約URLが未設定です。管理画面の「予約フォーム設定」にURLを入力してください。</p>
+                )}
               </section>
             ) : null}
 
